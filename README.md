@@ -1,6 +1,6 @@
 # Hibalag AI
 
-Hibalag AI is a mobile-first, multilingual digital guide for Silliman University’s 125th Founders Day and Hibalag Festival in August 2026.
+Hibalag AI is a mobile-first, multilingual digital guide for Silliman University’s Founders Day Celebration and Hibalag Festival in August.
 
 ## Product features
 
