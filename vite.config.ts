@@ -16,7 +16,21 @@ export default defineConfig({
   },
   vite: {
     plugins: [
-      mcpPlugin(),
+      {
+        name: "hibalag-tanstack-basepath",
+        enforce: "pre",
+        transform(code, id) {
+          if (id.includes("@tanstack/start-client-core") && id.includes("hydrateStart.js")) {
+            return code.replaceAll("process.env.TSS_ROUTER_BASEPATH", JSON.stringify("/"));
+          }
+          return null;
+        },
+      },
+      // mcp-js 0.26.2 compares Vite's normalized root (`C:/...`) with a
+      // Windows-native route path (`C:\\...`) and aborts startup. The generated
+      // MCP routes are committed, so Windows previews can safely use them
+      // without running the route generator. Lovable/Linux behavior is unchanged.
+      ...(process.platform === "win32" ? [] : [mcpPlugin()]),
       VitePWA({
         strategies: "generateSW",
         registerType: "autoUpdate",
