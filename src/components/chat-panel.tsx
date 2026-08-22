@@ -1,6 +1,6 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
-import { ArrowUp, Loader2, Zap } from "lucide-react";
+import { AlertTriangle, ArrowUp, Loader2, Zap } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -227,6 +227,15 @@ export function ChatPanel({
       </div>
 
       <div className="shrink-0 border-t border-border/70 bg-card/80 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur">
+        <p
+          role="note"
+          aria-label="AI accuracy notice"
+          className="mb-2 flex items-start gap-2 text-xs text-muted-foreground"
+        >
+          <AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+          <span>AI responses may be inaccurate. Verify important information.</span>
+        </p>
+
         <div className="scrollbar-slim -mx-1 mb-2 flex gap-2 overflow-x-auto px-1 pb-1">
           {SUGGESTION_KEYS.map((key) => {
             const suggestion = t(key);
