@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { HibalagApp } from "@/components/hibalag-app";
+import { appUrl } from "@/lib/app-url";
 
 export const Route = createFileRoute("/chat/$threadId")({
   head: ({ params }) => ({
@@ -25,11 +26,11 @@ export const Route = createFileRoute("/chat/$threadId")({
         content:
           "Your Hibalag AI conversation about Silliman University's 125th Founders Day and Hibalag Festival schedule, venues, and itineraries.",
       },
-      { property: "og:url", content: `https://hibalag-ai.lovable.app/chat/${params.threadId}` },
+      { property: "og:url", content: appUrl(`/chat/${params.threadId}`) },
       { name: "robots", content: "noindex" },
     ],
     links: [
-      { rel: "canonical", href: `https://hibalag-ai.lovable.app/chat/${params.threadId}` },
+      { rel: "canonical", href: appUrl(`/chat/${params.threadId}`) },
     ],
   }),
   component: ChatThreadPage,
