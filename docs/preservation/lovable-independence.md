@@ -5,15 +5,15 @@ Status: local preparation only. Lovable and Supabase remain connected.
 ## Confirmed
 
 - GitHub repository `doodstecsonhere/hibalag-ai` is the development source of truth.
-- The existing `vite.config.ts` remains unchanged and continues to support the Lovable-connected workflow.
-- `vite.independent.config.ts` provides a separate build path that does not load Lovable's Vite wrapper, preview bridge, telemetry, asset proxy, or MCP route generator.
-- The independent build uses only dependencies already pinned in the repository lockfile. No package was installed, removed, or upgraded.
+- The default `vite.config.ts` now forwards to the provider-neutral `vite.independent.config.ts`.
+- Neither build path loads Lovable's Vite wrapper, preview bridge, telemetry, asset proxy, or MCP route generator.
+- The independent build uses only dependencies already pinned in the repository lockfile. No package was downloaded, installed, or upgraded; only the two unused Lovable direct dependency declarations were removed.
+- Lovable's Vite wrapper, MCP package, generated MCP endpoints/tools, and editor-only error telemetry have been removed from the application and direct dependency lists.
 - The browser app contains a deterministic cached-schedule assistant. It does not require a live AI request when the browser is offline or the live gateway fails.
 - Supabase project identity is `zfjehsrnsszxbtqvgbwq`. No database, Auth, Storage, Edge Function, billing, or dashboard setting was changed during this checkpoint.
 
 ## Probable
 
-- The committed generated MCP routes should compile in the independent build while `@lovable.dev/mcp-js` remains installed. Their eventual removal should be reviewed separately because it removes functionality.
 - A future independent host can use the generated Nitro/Cloudflare output, subject to an isolated preview test and the host's current free-plan limits.
 
 ## Unknown
@@ -21,7 +21,15 @@ Status: local preparation only. Lovable and Supabase remain connected.
 - Production-record export and isolated database restore integrity. Direct database and pooler authentication are currently unavailable; this work is explicitly deferred.
 - Full Auth journey and cross-user ownership isolation outside Lovable.
 - Independent cloud-preview behavior, production environment variables, domain cutover, and DNS rollback.
-- Whether any external integration depends on the generated Lovable MCP endpoints.
+- Whether any external client previously used the removed public MCP endpoints. No application code referenced them.
+
+## Intentionally retained Lovable references
+
+- `LOVABLE_API_KEY`, the Lovable AI gateway URL, run-ID headers, provider name, model, and prompt remain unchanged. They are current production AI behavior and require separate approval to replace.
+- `src/lib/pwa.ts` still recognizes Lovable preview hosts so it does not register a service worker inside the connected editor preview.
+- The current Lovable public URL remains the fallback canonical URL and in `public/robots.txt` until an independent domain is approved. `VITE_PUBLIC_APP_URL` centralizes the future cutover.
+- Historical migration wording in `README.md`, this preservation record, and governance instructions remains intentionally descriptive.
+- Some resolved package tarball URLs in `bun.lock` point at Lovable's npm cache. They record package provenance and are not runtime calls or direct Lovable dependencies; rewriting the entire lock without an approved reinstall would add unrelated risk.
 
 ## Requires external access or approval
 

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { HibalagApp } from "@/components/hibalag-app";
+import { PUBLIC_APP_URL } from "@/lib/app-url";
 import { newId } from "@/lib/threads";
 
 
@@ -21,7 +22,7 @@ export const Route = createFileRoute("/")({
           "Ask Hibalag AI about Silliman University's Founders Week and Hibalag Festival schedule on August — in Bisaya, Tagalog, English, etc.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://hibalag-ai.lovable.app/" },
+      { property: "og:url", content: PUBLIC_APP_URL },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "Hibalag AI" },
       {
@@ -30,7 +31,7 @@ export const Route = createFileRoute("/")({
           "Ask Hibalag AI about Silliman University's Founders Week and Hibalag Festival schedule on August — in Bisaya, Tagalog, English, etc.",
       },
     ],
-    links: [{ rel: "canonical", href: "https://hibalag-ai.lovable.app/" }],
+    links: [{ rel: "canonical", href: PUBLIC_APP_URL }],
     scripts: [
       {
         type: "application/ld+json",
@@ -59,7 +60,7 @@ export const Route = createFileRoute("/")({
             name: "Silliman University",
             url: "https://su.edu.ph/",
           },
-          url: "https://hibalag-ai.lovable.app/",
+          url: PUBLIC_APP_URL,
         }),
       },
     ],
