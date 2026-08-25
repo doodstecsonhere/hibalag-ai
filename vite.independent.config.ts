@@ -36,7 +36,23 @@ export default defineConfig(({ command }) => ({
       },
       server: { entry: "server" },
     }),
-    ...(command === "build" ? [nitro({ defaultPreset: "cloudflare-module" })] : []),
+    ...(command === "build"
+      ? [
+          nitro({
+            defaultPreset: "cloudflare-module",
+            compatibilityDate: "2026-08-26",
+            cloudflare: {
+              deployConfig: true,
+              nodeCompat: true,
+              wrangler: {
+                name: "hibalag-ai",
+                workers_dev: true,
+                preview_urls: true,
+              },
+            },
+          }),
+        ]
+      : []),
     react(),
     {
       name: "hibalag-tanstack-basepath",
