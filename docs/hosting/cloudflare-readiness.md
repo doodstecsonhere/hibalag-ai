@@ -6,6 +6,7 @@ This document records the zero-dollar, pre-deployment hosting plan for Hibalag A
 
 - The independent build targets Nitro's recommended `cloudflare-module` Worker output.
 - The generated Wrangler configuration has the stable Worker name `hibalag-ai`, a pinned compatibility date, Node.js compatibility, static assets, `workers.dev`, and version preview URLs enabled.
+- Cloudflare's account-subdomain API confirmed `doodstecson` on 2026-08-26. The initial Worker URL will therefore be `https://hibalag-ai.doodstecson.workers.dev`.
 - The repository contains no Cloudflare account identifier, API token, route, custom domain, or production secret.
 - A local development-server smoke test returned the home page successfully with `LOVABLE_API_KEY` absent. The chat API returned its expected missing-key failure without calling live AI.
 - The Cloudflare Workers Free plan is the default zero-dollar plan. Its relevant limits include 100,000 requests per day, 10 ms CPU time per invocation, 128 MB memory, 50 subrequests per request, 3 MB compressed Worker size, 20,000 static files, and 25 MiB per static asset. Static-asset requests are free and unlimited under the current pricing documentation.
@@ -18,7 +19,7 @@ This document records the zero-dollar, pre-deployment hosting plan for Hibalag A
 
 - The existing Cloudflare account is the best zero-dollar hosting candidate because it is already active and has substantial unused Free-plan request capacity.
 - The current application should fit the Free plan because most frontend files are static assets and the server route can keep live AI disabled when its runtime secret is absent. Actual CPU usage must be measured on the first approved preview.
-- A private GitHub repository can be connected to Workers Builds, but the least invasive first preview is a version-only upload so no production deployment or DNS route is created.
+- A private GitHub repository can be connected to Workers Builds. For this new Worker, Cloudflare requires one initial `wrangler deploy` before it will accept version-only preview uploads; that initial deployment is a separate approval gate because it publishes the `workers.dev` URL.
 
 ## Unknown
 
@@ -30,8 +31,8 @@ This document records the zero-dollar, pre-deployment hosting plan for Hibalag A
 
 ## Requires external access and approval
 
-- Creating the `hibalag-ai` Worker or connecting its private GitHub repository.
-- Uploading the first preview version, even though it is not a production deployment.
+- Creating and initially deploying the `hibalag-ai` Worker at `https://hibalag-ai.doodstecson.workers.dev`.
+- Uploading later preview versions, even when they are not promoted to production.
 - Adding Cloudflare Access if an authenticated preview is required.
 - Adding runtime secrets or changing build/runtime variables.
 - Promoting a version to production, attaching a custom domain, changing DNS, or enabling any paid plan.
@@ -47,10 +48,10 @@ The current Supabase URL and publishable browser key are application configurati
 
 ## Isolated preview plan
 
-1. Obtain one consolidated approval for creating a zero-dollar Worker and uploading a version-only preview.
+1. Obtain one consolidated approval for the unavoidable initial zero-dollar deployment at `https://hibalag-ai.doodstecson.workers.dev`.
 2. Confirm the dashboard still shows the Free plan and stop if it requests a card, trial, paid plan, or billing change.
 3. Build from the reviewed commit with `LOVABLE_API_KEY` absent.
-4. Upload a version only; do not promote it to production, attach routes, connect a custom domain, or alter DNS.
+4. Run the initial deployment only to the account's `workers.dev` hostname; do not attach routes, connect a custom domain, or alter DNS. After this Worker exists, use version-only uploads for later previews unless a production promotion is separately approved.
 5. Test static pages, offline schedule/chat behavior, PWA assets, errors, and the disabled-live-AI response using only non-production test data.
 6. Record request/CPU usage and remove the preview version if the test exposes data, calls live AI, or approaches a hard limit.
 
