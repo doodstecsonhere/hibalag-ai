@@ -7,6 +7,7 @@
     "dev": "vite dev",
     "build": "vite build",
     "build:independent": "vite build --config vite.independent.config.ts",
+    "verify:cloudflare-pwa": "node scripts/verify-cloudflare-pwa.mjs",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",

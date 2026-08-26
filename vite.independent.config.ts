@@ -70,7 +70,7 @@ export default defineConfig(({ command }) => ({
       injectRegister: null,
       devOptions: { enabled: false },
       filename: "sw.js",
-      outDir: "dist/client",
+      outDir: ".output/public",
       manifest: {
         id: "/",
         name: "Hibalag AI",
@@ -96,6 +96,7 @@ export default defineConfig(({ command }) => ({
         ],
       },
       workbox: {
+        additionalManifestEntries: [{ url: "/", revision: null }],
         globPatterns: [
           "**/*.{js,css,html,svg,png,ico,jpg,jpeg,webp,woff,woff2,json,webmanifest,txt}",
         ],
