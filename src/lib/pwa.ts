@@ -43,7 +43,13 @@ export function registerServiceWorker() {
     return;
   }
 
-  window.addEventListener("load", () => {
+  const register = () => {
     void navigator.serviceWorker.register(SW_URL, { scope: "/" }).catch(() => undefined);
-  });
+  };
+
+  if (document.readyState === "complete") {
+    register();
+  } else {
+    window.addEventListener("load", register, { once: true });
+  }
 }

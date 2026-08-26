@@ -36,7 +36,23 @@ export default defineConfig(({ command }) => ({
       },
       server: { entry: "server" },
     }),
-    ...(command === "build" ? [nitro({ defaultPreset: "cloudflare-module" })] : []),
+    ...(command === "build"
+      ? [
+          nitro({
+            defaultPreset: "cloudflare-module",
+            compatibilityDate: "2026-08-26",
+            cloudflare: {
+              deployConfig: true,
+              nodeCompat: true,
+              wrangler: {
+                name: "hibalag-ai",
+                workers_dev: true,
+                preview_urls: true,
+              },
+            },
+          }),
+        ]
+      : []),
     react(),
     {
       name: "hibalag-tanstack-basepath",
@@ -54,7 +70,7 @@ export default defineConfig(({ command }) => ({
       injectRegister: null,
       devOptions: { enabled: false },
       filename: "sw.js",
-      outDir: "dist/client",
+      outDir: ".output/public",
       manifest: {
         id: "/",
         name: "Hibalag AI",
@@ -80,6 +96,7 @@ export default defineConfig(({ command }) => ({
         ],
       },
       workbox: {
+        additionalManifestEntries: [{ url: "/", revision: null }],
         globPatterns: [
           "**/*.{js,css,html,svg,png,ico,jpg,jpeg,webp,woff,woff2,json,webmanifest,txt}",
         ],
