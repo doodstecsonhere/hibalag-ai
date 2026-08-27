@@ -1,6 +1,7 @@
 # Chat ownership integrity migration
 
-Status: prepared and tested locally only. Not applied to production.
+Status: applied to production on 2026-08-27 after backup and zero-conflict
+preflight verification.
 
 The checked-in `supabase/config.toml` is for isolated local development only.
 It does not describe or change production Auth, networking, or billing settings.
@@ -85,3 +86,18 @@ containers:
 
 All fictional users and rows were removed. The disposable Hibalag containers
 and network were removed without deleting shared images or affecting `n8n_app`.
+
+## Production verification evidence
+
+- Fresh encrypted roles, schema, and data exports included Auth metadata and
+  passed an archive integrity test before migration.
+- The read-only preflight returned zero mixed-owner rows.
+- Supabase migration history records
+  `20260827041201_enforce_chat_message_thread_ownership`.
+- The composite constraint and unique parent key are present, the legacy
+  single-column constraint is absent, and the post-migration conflict count is
+  zero.
+- A rollback-only transaction verified Auth principals, owner CRUD,
+  application-style queries, cross-user and anonymous isolation, composite
+  ownership rejection, cascade behavior, and Auth-user preservation.
+- Cleanup counts confirmed zero fictional users, threads, and messages.
