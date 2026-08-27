@@ -9,6 +9,20 @@ email addresses, user rows, chat content, or other private record values.
 
 ## Confirmed preservation artifacts
 
+The newest pre-migration recovery point is:
+
+- Encrypted archive:
+  `C:\Code\Backups\hibalag-ai\supabase-20260827-121023.7z`
+- Archive SHA-256:
+  `7988B21FC0A36D6975BE4DF696ECC976D6E7C4C612EF78CF9E46F41DB25F2FD1`
+- DPAPI-protected archive key:
+  `C:\Code\Backups\hibalag-ai\supabase-20260827-121023.7z.key.dpapi`
+- The archive contains fresh roles, schema, and custom-format data exports,
+  including Auth users and identities. Its encrypted archive integrity and dump
+  catalog were verified before the ownership migration was applied.
+
+The earlier independently restored recovery point remains retained:
+
 - Encrypted archive:
   `C:\Code\Backups\hibalag-ai\supabase-20260826-222833.7z`
 - Archive SHA-256:
@@ -36,18 +50,18 @@ container was removed after verification. No production row values were shown.
 
 Source and restored counts matched:
 
-| Check | Count |
-| --- | ---: |
-| Auth identities | 2 |
-| Auth users | 1 |
-| Functions | 22 |
-| RLS policies | 4 |
-| RLS-enabled tables | 4 |
-| Triggers | 4 |
-| `public.app_config` rows | 1 |
-| `public.chat_messages` rows | 0 |
-| `public.chat_threads` rows | 14 |
-| `public.schedule_context` rows | 1 |
+| Check                          | Count |
+| ------------------------------ | ----: |
+| Auth identities                |     2 |
+| Auth users                     |     1 |
+| Functions                      |    22 |
+| RLS policies                   |     4 |
+| RLS-enabled tables             |     4 |
+| Triggers                       |     4 |
+| `public.app_config` rows       |     1 |
+| `public.chat_messages` rows    |     0 |
+| `public.chat_threads` rows     |    14 |
+| `public.schedule_context` rows |     1 |
 
 This confirms that Auth metadata and the application schemas are present and
 portable. It is not a claim that a plain PostgreSQL image can reproduce every
@@ -98,6 +112,25 @@ copy. Stop if either the SHA-256 value or the archive integrity test differs.
 - Lovable remains connected.
 
 ## Remaining gate
+
+### Production ownership verification
+
+Migration `20260827041201_enforce_chat_message_thread_ownership` was applied on
+2026-08-27 only after the fresh encrypted backup passed and a read-only
+ownership-conflict count returned zero.
+
+Production verification confirmed the composite owner constraint, owner CRUD,
+application-style queries, cross-user and anonymous isolation, cascade
+behavior, and Auth-user preservation. The verification used two fictional
+principals inside a transaction that ended with `ROLLBACK`. Follow-up counts
+confirmed that zero fictional users, threads, or messages remained and that
+the ownership-conflict count remained zero.
+
+The full signup, confirmation, login, logout, recovery, and expiry lifecycle
+remains verified in the isolated local GoTrue environment. A production signup
+using a reserved invalid domain was rejected without creating an account; it
+was not retried with a deliverable address because that could send external
+email.
 
 ### Local Auth verification
 

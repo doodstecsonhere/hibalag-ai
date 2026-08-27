@@ -1,7 +1,7 @@
 # Lovable independence checkpoint
 
-Status: independent Cloudflare production is verified, Supabase preservation is
-complete, and Lovable and Supabase remain connected.
+Status: independent Cloudflare production and the Supabase ownership migration
+are verified. Lovable and Supabase remain connected pending the final gate.
 
 ## Confirmed
 
@@ -25,9 +25,12 @@ complete, and Lovable and Supabase remain connected.
 - Temporary database access, temporary login roles, and temporary personal
   access tokens used during earlier recovery attempts were disabled, expired,
   or revoked. Transient plaintext credentials and dumps were removed.
-- No database rows, schema objects, RLS policies, Auth configuration, Storage,
-  Edge Functions, billing, AI configuration, DNS, or Lovable connection were
-  changed by the preservation workflow.
+- The backup workflow itself changed no rows, Auth configuration, Storage, Edge
+  Functions, billing, AI configuration, DNS, or Lovable connection. The later
+  reviewed ownership migration changed only the two documented constraints.
+- The reviewed message/thread ownership migration is now recorded in Supabase
+  migration history and verified in production. Its rollback-only fictional
+  verification left no test accounts or rows.
 
 ## Unknown
 
@@ -35,8 +38,9 @@ complete, and Lovable and Supabase remain connected.
   redirect behavior against a non-production Supabase environment. The direct
   local Auth lifecycle passed, but the application currently points at the
   production project.
-- Remediation of the locally confirmed mixed-ownership integrity gap between
-  `chat_messages.user_id` and the owner of its referenced `chat_threads` row.
+- Revoking direct API execution of the pre-existing privileged
+  `public.rls_auto_enable()` event-trigger function. A local migration is
+  prepared; production is unchanged pending final approval.
 - A full platform-level restore of Supabase-managed schemas and extensions. The
   portable database export is complete, while the isolated verification focused
   on the application-critical `auth`, `public`, and `storage` schemas because a
@@ -85,11 +89,31 @@ Do not provide `LOVABLE_API_KEY` during routine tests. That prevents accidental 
    verify an isolated restore without exposing records. **Complete.**
 5. Rotate the database password, retain the final credential only under DPAPI,
    and remove transient credentials. **Complete.**
-6. The direct local Auth lifecycle and principal RLS isolation tests are
-   complete. Remediate the documented cross-owner message/thread integrity gap,
-   then run the remaining browser-level application Auth journey.
+6. The local Auth lifecycle, production ownership migration, principal RLS
+   isolation, application-query behavior, and cleanup checks are complete.
+   Apply the reviewed final privileged-function hardening before disconnection.
 7. Stop at the final gate. Disconnect Lovable only after the owner gives
    explicit final approval.
+
+## Final database hardening rollback
+
+The pending hardening migration revokes direct Data API execution of
+`public.rls_auto_enable()` while leaving its PostgreSQL event trigger enabled,
+and creates `public.chat_messages_thread_owner_idx` for the composite foreign
+key. Its structural rollback is:
+
+```sql
+begin;
+
+drop index if exists public.chat_messages_thread_owner_idx;
+grant execute on function public.rls_auto_enable() to public;
+
+commit;
+```
+
+Granting execution back to `public` restores the original externally callable
+state and should be used only if the hardening causes a verified compatibility
+failure. Neither direction changes application rows.
 
 ## Rollback
 
