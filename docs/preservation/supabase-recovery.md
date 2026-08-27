@@ -99,6 +99,49 @@ copy. Stop if either the SHA-256 value or the archive integrity test differs.
 
 ## Remaining gate
 
-Before disconnecting Lovable, complete the non-production Auth lifecycle and
-cross-user RLS ownership tests, review recovery access to the DPAPI-protected
-files, and obtain one explicit final approval for the disconnection itself.
+### Local Auth verification
+
+On 2026-08-27, the official GoTrue `v2.195.0`, PostgreSQL 17, and Mailpit
+images were run on a dedicated localhost-only Docker network. All accounts,
+passwords, messages, and email addresses were fictional and disposable. No
+email left the computer and no production database connection was used.
+
+The following direct Auth API checks passed:
+
+- signup withheld a session until email confirmation;
+- login before confirmation was rejected;
+- local Mailpit confirmation completed and password login succeeded;
+- the authenticated user endpoint accepted a valid session;
+- logout revoked the refresh token;
+- password recovery issued a local recovery session, allowed a new password,
+  rejected the old password, and accepted the new password;
+- an expired, correctly signed local JWT was rejected with `bad_jwt`; and
+- a second independent fictional account confirmed and signed in.
+
+This verifies the Auth service lifecycle in isolation. It does not verify the
+production dashboard's provider, redirect, SMTP, or template configuration,
+and it does not replace a browser-level application journey.
+
+### Local RLS verification
+
+The recovered `chat_threads` and `chat_messages` definitions, grants, and RLS
+policies were recreated in the disposable database. Tests as two fictional
+authenticated users plus the anonymous role confirmed:
+
+- owners can insert and read their own threads and messages;
+- another user cannot read, update, delete, or claim ownership of the owner's
+  thread or message rows;
+- anonymous reads return no private chat rows and anonymous writes fail; and
+- the application query path continues to show each user only their own
+  message rows.
+
+One integrity gap remains: the `chat_messages` policy checks only
+`auth.uid() = user_id`. A user can therefore create their own message row with
+the `thread_id` of another user's thread. RLS keeps that row invisible to the
+thread owner, but the foreign-key relationship contains mixed ownership and a
+thread deletion can cascade to a row owned by the other user.
+
+Before disconnecting Lovable, add and test an approved migration that enforces
+same-owner thread/message relationships, verify the application Auth journey
+with fictional accounts, review recovery access to the DPAPI-protected files,
+and obtain one explicit final approval for the disconnection itself.

@@ -31,8 +31,12 @@ complete, and Lovable and Supabase remain connected.
 
 ## Unknown
 
-- Full signup, confirmation, login, logout, recovery, session-expiry, and
-  cross-user RLS ownership journeys with non-production accounts.
+- Browser-level application signup, confirmation, login, logout, recovery, and
+  redirect behavior against a non-production Supabase environment. The direct
+  local Auth lifecycle passed, but the application currently points at the
+  production project.
+- Remediation of the locally confirmed mixed-ownership integrity gap between
+  `chat_messages.user_id` and the owner of its referenced `chat_threads` row.
 - A full platform-level restore of Supabase-managed schemas and extensions. The
   portable database export is complete, while the isolated verification focused
   on the application-critical `auth`, `public`, and `storage` schemas because a
@@ -51,7 +55,10 @@ complete, and Lovable and Supabase remain connected.
 
 ## Requires external access or approval
 
-- Running the remaining non-production Auth and cross-user RLS journeys.
+- Applying and verifying an approved RLS/data-integrity migration that prevents
+  a user from attaching their message row to another user's thread.
+- Running the remaining browser-level application Auth journey against a
+  non-production environment.
 - Creating or changing any cloud preview, deployment, environment variable,
   Supabase setting, DNS record, or billing state.
 - Merging this preservation documentation pull request.
@@ -78,8 +85,9 @@ Do not provide `LOVABLE_API_KEY` during routine tests. That prevents accidental 
    verify an isolated restore without exposing records. **Complete.**
 5. Rotate the database password, retain the final credential only under DPAPI,
    and remove transient credentials. **Complete.**
-6. Complete the remaining non-production Auth/RLS isolation journeys and review
-   the documented deployment and data-recovery procedures.
+6. The direct local Auth lifecycle and principal RLS isolation tests are
+   complete. Remediate the documented cross-owner message/thread integrity gap,
+   then run the remaining browser-level application Auth journey.
 7. Stop at the final gate. Disconnect Lovable only after the owner gives
    explicit final approval.
 
