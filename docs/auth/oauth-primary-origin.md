@@ -9,28 +9,28 @@
 - That callback is already registered in the Google Cloud Web OAuth client.
 - Google Cloud already lists `https://hibalag-ai.pages.dev` as an authorized
   JavaScript origin. Google Search Console does not control OAuth redirects.
-- Supabase still uses the Lovable deployment as its Site URL and currently
-  allows only Lovable production and preview returns. Supabase therefore falls
-  back to Lovable when Pages requests an unlisted return URL.
+- Supabase uses `https://hibalag-ai.pages.dev` as its Site URL. Its redirect
+  allowlist includes the Pages, Worker, and retained Lovable origins.
+- The owner verified Google login from Pages and Workers returns to the same
+  Cloudflare origin that started the flow.
 
-No external setting was changed while preparing this document.
+No Google Cloud client, callback, provider, or secret change was required.
 
-## Approval-gated Supabase change
+## Applied Supabase configuration
 
-1. Change the Supabase Site URL to `https://hibalag-ai.pages.dev`.
-2. Add `https://hibalag-ai.pages.dev/**` to Redirect URLs.
-3. Add `https://hibalag-ai.doodstecson.workers.dev/**` to Redirect URLs.
-4. Retain the existing Lovable production and preview Redirect URLs.
-5. Do not change the Google provider callback, client ID, or client secret.
+1. Site URL: `https://hibalag-ai.pages.dev`.
+2. Redirect URL: `https://hibalag-ai.pages.dev/**`.
+3. Redirect URL: `https://hibalag-ai.doodstecson.workers.dev/**`.
+4. Existing Lovable production and preview Redirect URLs retained.
+5. Google provider callback, client ID, and client secret unchanged.
 
 No Google Cloud or Search Console change is currently required.
 
 ## Verification
 
-Using fictional accounts only, test Google login and email confirmation from
-Pages, Worker, and Lovable. Each journey must return to the same origin that
-started it. Confirm that an unlisted fictional origin still falls back to the
-Pages Site URL and that no token appears in logs or documentation.
+Google login from Pages and Workers is confirmed to return to the initiating
+origin. Email confirmation and the retained Lovable journey still require a
+fictional-account release-candidate test. No token is recorded here.
 
 ## Rollback
 
