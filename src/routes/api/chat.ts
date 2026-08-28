@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { convertToModelMessages, streamText, type UIMessage } from "ai";
+import { convertToModelMessages, streamText } from "ai";
 
 import {
   createLovableAiGatewayProvider,
@@ -7,15 +7,15 @@ import {
   getLovableAiGatewayRunId,
   withLovableAiGatewayRunIdHeader,
 } from "@/lib/ai-gateway.server";
+import {
+  CHAT_LIMITS,
+  ChatRequestError,
+  boundScheduleContext,
+  parseChatRequest,
+  readBoundedChatBody,
+  type ChatLanguage,
+} from "@/lib/chat-request.server";
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/lib/supabase";
-
-type Language = "bisaya" | "tagalog" | "english" | "auto";
-
-type ChatRequestBody = {
-  messages?: unknown;
-  language?: Language;
-  scheduleMarkdown?: string;
-};
 
 let cachedSchedule: { markdown: string; at: number } | null = null;
 
@@ -30,7 +30,7 @@ async function getScheduleMarkdown(): Promise<string | null> {
     );
     if (!response.ok) return cachedSchedule?.markdown ?? null;
     const rows = (await response.json()) as Array<{ markdown_context: string | null }>;
-    const markdown = rows?.[0]?.markdown_context ?? null;
+    const markdown = boundScheduleContext(rows?.[0]?.markdown_context ?? null);
     if (markdown) cachedSchedule = { markdown, at: Date.now() };
     return markdown;
   } catch {
@@ -38,7 +38,7 @@ async function getScheduleMarkdown(): Promise<string | null> {
   }
 }
 
-function languageRule(language: Language) {
+function languageRule(language: ChatLanguage) {
   switch (language) {
     case "bisaya":
       return "The user picked BISAYA. Always answer in contemporary urban Cebuano/Bisaya as spoken in Dumaguete (natural Bisaya-English code-switching), regardless of the language they typed in.";
@@ -51,7 +51,7 @@ function languageRule(language: Language) {
   }
 }
 
-function buildSystemPrompt(schedule: string | null, language: Language) {
+function buildSystemPrompt(schedule: string | null, language: ChatLanguage) {
   return `You are "Hibalag AI", the official digital guide for Silliman University's 125th Founders Day and the Hibalag Festival (August 2026) in Dumaguete City, Philippines.
 
 PERSONA
@@ -79,9 +79,14 @@ export const Route = createFileRoute("/api/chat")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const body = (await request.json()) as ChatRequestBody;
-        if (!Array.isArray(body.messages)) {
-          return new Response("Messages are required", { status: 400 });
+        let body;
+        try {
+          body = parseChatRequest(await readBoundedChatBody(request));
+        } catch (error) {
+          if (error instanceof ChatRequestError) {
+            return new Response(error.message, { status: error.status });
+          }
+          return new Response("Invalid chat request", { status: 400 });
         }
 
         const key = process.env.LOVABLE_API_KEY;
@@ -89,18 +94,20 @@ export const Route = createFileRoute("/api/chat")({
           return new Response("Missing LOVABLE_API_KEY", { status: 500 });
         }
 
-        const schedule = (await getScheduleMarkdown()) ?? body.scheduleMarkdown ?? null;
+        const schedule = await getScheduleMarkdown();
         const initialRunId = getLovableAiGatewayRunId(request);
         const gateway = createLovableAiGatewayProvider(key, initialRunId);
 
         const result = streamText({
           model: gateway("google/gemini-3.6-flash"),
           system: buildSystemPrompt(schedule, body.language ?? "auto"),
-          messages: await convertToModelMessages(body.messages as UIMessage[]),
+          messages: await convertToModelMessages(body.messages),
+          maxOutputTokens: CHAT_LIMITS.outputTokens,
+          abortSignal: AbortSignal.timeout(CHAT_LIMITS.timeoutMs),
         });
 
         const response = result.toUIMessageStreamResponse({
-          originalMessages: body.messages as UIMessage[],
+          originalMessages: body.messages,
           headers: getLovableAiGatewayResponseHeaders(undefined, {
             ...(initialRunId ? { "X-Lovable-AIG-Run-ID": initialRunId } : {}),
           }),
