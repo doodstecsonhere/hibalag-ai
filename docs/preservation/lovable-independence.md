@@ -1,7 +1,8 @@
 # Lovable independence checkpoint
 
-Status: independent Cloudflare production and the Supabase ownership migration
-are verified. Lovable and Supabase remain connected pending the final gate.
+Status: independent Cloudflare production, Supabase recovery, ownership, and
+database hardening are verified. GitHub is authoritative; Lovable is retained
+as a stale historical fallback.
 
 ## Confirmed
 
@@ -38,16 +39,38 @@ are verified. Lovable and Supabase remain connected pending the final gate.
   redirect behavior against a non-production Supabase environment. The direct
   local Auth lifecycle passed, but the application currently points at the
   production project.
-- Revoking direct API execution of the pre-existing privileged
-  `public.rls_auto_enable()` event-trigger function. A local migration is
-  prepared; production is unchanged pending final approval.
 - A full platform-level restore of Supabase-managed schemas and extensions. The
   portable database export is complete, while the isolated verification focused
   on the application-critical `auth`, `public`, and `storage` schemas because a
   plain PostgreSQL image does not contain every Supabase-managed extension.
-- Domain cutover and DNS rollback. The independent Workers deployment does not
-  yet replace any custom production domain.
+- No custom domain or DNS cutover exists. The independent Pages and Worker
+  hostnames are the public deployment and rollback paths.
 - Whether any external client previously used the removed public MCP endpoints. No application code referenced them.
+
+## 2026-08-28 independent release readiness
+
+- Primary: [hibalag-ai.pages.dev](https://hibalag-ai.pages.dev), source
+  `0e273f4186f3530f53fc96cdb84d9538ac72d0a6`, deployment
+  `e3375360-7bb8-4f4d-85df-2ea288509d31`.
+- Secondary rollback:
+  [hibalag-ai.doodstecson.workers.dev](https://hibalag-ai.doodstecson.workers.dev),
+  Worker version `643389ce-7798-4332-b5ca-bbe655ccf903`.
+- The reviewed ownership and database-hardening migrations are applied.
+  External roles cannot execute `public.rls_auto_enable()`; its `postgres`
+  ownership and enabled event trigger remain intact, and the covering index
+  exists. Supabase advisors no longer report the privileged-function warnings.
+- Both deployments work with live AI disabled and deterministic fallback
+  available. They share one Cloudflare account and Workers Free quota.
+- The owner reports that Lovable GitHub synchronization is no longer active.
+  Available Lovable metadata confirms its retained copy is behind GitHub, but
+  does not independently expose the integration switch.
+
+Residual manual items are production email-based Auth journeys, the accepted
+Supabase leaked-password-protection warning, a genuine network-blocked Pages
+production run, a full managed-platform restore exercise, and updating the
+application canonical metadata that still names Lovable. These are documented
+limitations rather than demonstrated failures. Publishing `v1.0.0` requires a
+separate approval but no deployment or external-service change.
 
 ## Intentionally retained Lovable references
 

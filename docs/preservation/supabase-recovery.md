@@ -168,13 +168,33 @@ authenticated users plus the anonymous role confirmed:
 - the application query path continues to show each user only their own
   message rows.
 
-One integrity gap remains: the `chat_messages` policy checks only
-`auth.uid() = user_id`. A user can therefore create their own message row with
-the `thread_id` of another user's thread. RLS keeps that row invisible to the
-thread owner, but the foreign-key relationship contains mixed ownership and a
-thread deletion can cascade to a row owned by the other user.
+The earlier mixed-ownership integrity gap is resolved by the reviewed composite
+foreign key. Production verification confirmed owner CRUD, application-style
+queries, cross-user and anonymous isolation, cascade behavior, and zero
+remaining ownership conflicts using disposable fictional principals.
 
-Before disconnecting Lovable, add and test an approved migration that enforces
-same-owner thread/message relationships, verify the application Auth journey
-with fictional accounts, review recovery access to the DPAPI-protected files,
-and obtain one explicit final approval for the disconnection itself.
+## 2026-08-28 readiness recheck
+
+The newest encrypted archive and its DPAPI-protected key remain present outside
+OneDrive. Their recorded size and SHA-256 still match; the archive was not
+decrypted and no records were displayed. The preceding archive remains the
+end-to-end isolated-restore evidence.
+
+Production records the ownership and hardening migrations as versions
+`20260827041201` and `20260827074437`; the repository retains their reviewed
+files under the original local version names. Read-only metadata checks confirm
+the ownership constraints, covering index, four RLS-enabled application tables,
+four policies, `postgres` ownership of `public.rls_auto_enable()`, its enabled
+event trigger, and denied execution for `PUBLIC`, `anon`, `authenticated`, and
+`service_role`. Supabase is healthy and its advisors no longer report
+privileged-function warnings.
+
+Residual recovery limits:
+
+- The latest archive has integrity and catalog evidence, while the preceding
+  archive is the one restored end to end.
+- A database archive does not capture dashboard secrets, every managed Auth
+  setting, logs, or all service configuration.
+- Full production email-based Auth journeys remain manual; isolated fictional
+  lifecycle and RLS tests passed and retained no test users or rows.
+- Leaked-password protection remains disabled and was not changed.

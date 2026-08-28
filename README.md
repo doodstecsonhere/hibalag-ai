@@ -16,7 +16,12 @@ React, TypeScript, TanStack Start, Vite, Supabase, Tailwind CSS, and an AI SDK i
 
 ## Development status
 
-This private repository is the independent source of truth for Hibalag AI. It retains the original revision history while the application is being migrated away from Lovable.
+This private repository is the independent source of truth for Hibalag AI and retains the original revision history.
+
+- Primary deployment: [hibalag-ai.pages.dev](https://hibalag-ai.pages.dev)
+- Secondary known-good rollback: [hibalag-ai.doodstecson.workers.dev](https://hibalag-ai.doodstecson.workers.dev)
+
+This ordering is release governance only. Both zero-dollar deployments remain active, and the retained Lovable site is a historical fallback rather than a development source.
 
 Migration work should be performed on feature branches and merged through reviewed pull requests.
 
