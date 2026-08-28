@@ -53,7 +53,9 @@ are verified. Lovable and Supabase remain connected pending the final gate.
 
 - `LOVABLE_API_KEY`, the Lovable AI gateway URL, run-ID headers, provider name, model, and prompt remain unchanged. They are current production AI behavior and require separate approval to replace.
 - `src/lib/pwa.ts` still recognizes Lovable preview hosts so it does not register a service worker inside the connected editor preview.
-- The current Lovable public URL remains the fallback canonical URL and in `public/robots.txt` until an independent domain is approved. `VITE_PUBLIC_APP_URL` centralizes the future cutover.
+- `https://hibalag-ai.pages.dev` is the approved primary canonical URL. The
+  Worker and retained Lovable URLs remain compatibility and rollback origins;
+  `VITE_PUBLIC_APP_URL` supports an explicitly approved environment override.
 - Historical migration wording in `README.md`, this preservation record, and governance instructions remains intentionally descriptive.
 - Some resolved package tarball URLs in `bun.lock` point at Lovable's npm cache. They record package provenance and are not runtime calls or direct Lovable dependencies; rewriting the entire lock without an approved reinstall would add unrelated risk.
 
