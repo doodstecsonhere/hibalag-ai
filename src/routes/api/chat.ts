@@ -10,6 +10,7 @@ import {
 import {
   CHAT_LIMITS,
   ChatRequestError,
+  boundScheduleContext,
   parseChatRequest,
   readBoundedChatBody,
   type ChatLanguage,
@@ -29,7 +30,7 @@ async function getScheduleMarkdown(): Promise<string | null> {
     );
     if (!response.ok) return cachedSchedule?.markdown ?? null;
     const rows = (await response.json()) as Array<{ markdown_context: string | null }>;
-    const markdown = rows?.[0]?.markdown_context ?? null;
+    const markdown = boundScheduleContext(rows?.[0]?.markdown_context ?? null);
     if (markdown) cachedSchedule = { markdown, at: Date.now() };
     return markdown;
   } catch {

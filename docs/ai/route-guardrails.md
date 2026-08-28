@@ -11,6 +11,7 @@
 - Only the supported language choices are accepted.
 - Client-supplied schedule context is ignored. The server obtains schedule
   context from the public, RLS-protected Supabase schedule view.
+- Server-supplied schedule context is limited to 32,000 characters.
 - Provider output is limited to 800 tokens and the request is aborted after 15
   seconds.
 

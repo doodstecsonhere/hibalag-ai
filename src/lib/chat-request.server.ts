@@ -4,6 +4,7 @@ export const CHAT_LIMITS = {
   requestBytes: 64 * 1024,
   messages: 24,
   messageBytes: 8 * 1024,
+  scheduleCharacters: 32_000,
   outputTokens: 800,
   timeoutMs: 15_000,
 } as const;
@@ -119,4 +120,9 @@ export function parseChatRequest(text: string): ValidatedChatRequest {
     messages: candidate.messages as UIMessage[],
     language: language as ChatLanguage,
   };
+}
+
+export function boundScheduleContext(markdown: string | null) {
+  if (!markdown) return null;
+  return markdown.slice(0, CHAT_LIMITS.scheduleCharacters);
 }

@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   CHAT_LIMITS,
   ChatRequestError,
+  boundScheduleContext,
   parseChatRequest,
   readBoundedChatBody,
   rejectOversizedContentLength,
@@ -84,4 +85,10 @@ test("rejects unknown languages and ignores client-supplied schedule context", (
     JSON.stringify({ messages: [userMessage], scheduleMarkdown: "untrusted schedule override" }),
   );
   assert.deepEqual(Object.keys(result).sort(), ["language", "messages"]);
+});
+
+test("bounds server-supplied schedule context", () => {
+  const schedule = "x".repeat(CHAT_LIMITS.scheduleCharacters + 100);
+  assert.equal(boundScheduleContext(schedule)?.length, CHAT_LIMITS.scheduleCharacters);
+  assert.equal(boundScheduleContext(null), null);
 });
