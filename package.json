@@ -10,6 +10,7 @@
     "package:cloudflare-pages": "node scripts/package-cloudflare-pages.mjs",
     "verify:cloudflare-pwa": "node scripts/verify-cloudflare-pwa.mjs",
     "verify:cloudflare-pages": "node scripts/verify-cloudflare-pages.mjs",
+    "verify:chat-state": "node --experimental-strip-types --test src/lib/thread-state.test.ts",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",

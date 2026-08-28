@@ -7,7 +7,6 @@ import { useI18n } from "@/lib/i18n-context";
 import type { Thread } from "@/lib/threads";
 import { cn } from "@/lib/utils";
 
-
 type ThreadDrawerProps = {
   open: boolean;
   onClose: () => void;
@@ -42,7 +41,6 @@ export function ThreadDrawer({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const { t } = useI18n();
-
 
   return (
     <>
@@ -85,13 +83,11 @@ export function ThreadDrawer({
           </div>
         ) : null}
 
-
         <div className="scrollbar-slim min-h-0 flex-1 overflow-y-auto px-2 pb-2">
           {threads.length === 0 ? (
             <p className="px-2 py-6 text-center text-xs text-muted-foreground">
               {t("threads.empty")}
             </p>
-
           ) : (
             <ul className="flex flex-col gap-1">
               {threads.map((thread) => {
@@ -144,7 +140,7 @@ export function ThreadDrawer({
                         <button
                           type="button"
                           aria-label={t("threads.rename", { title: thread.title })}
-                          className="rounded-md p-1.5 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-foreground focus-visible:opacity-100"
+                          className="rounded-md p-1.5 text-muted-foreground opacity-100 hover:text-foreground sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
                           onClick={() => {
                             setEditingId(thread.id);
                             setDraft(thread.title);
@@ -155,7 +151,7 @@ export function ThreadDrawer({
                         <button
                           type="button"
                           aria-label={t("threads.delete", { title: thread.title })}
-                          className="rounded-md p-1.5 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive focus-visible:opacity-100"
+                          className="rounded-md p-1.5 text-muted-foreground opacity-100 hover:text-destructive sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
                           onClick={() => onDelete(thread.id)}
                         >
                           <Trash2 className="size-3.5" />
@@ -180,7 +176,6 @@ export function ThreadDrawer({
           ) : (
             <Button size="sm" variant="outline" className="w-full" onClick={onLogin}>
               <LogIn className="mr-1.5 size-3.5" /> {t("threads.login")}
-
             </Button>
           )}
         </div>

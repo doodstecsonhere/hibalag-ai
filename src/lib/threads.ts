@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { createRemovalGuard, preserveThreadMetadata } from "./thread-state";
 
 export type ChatRole = "user" | "assistant";
 
@@ -18,6 +19,7 @@ export type Thread = {
 
 const INDEX_KEY = "hibalag:threads:v1";
 const threadKey = (id: string) => `hibalag:thread:${id}`;
+const removalGuard = createRemovalGuard();
 
 export function newId() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
@@ -65,9 +67,13 @@ function localReadMessages(id: string): StoredMessage[] {
   }
 }
 
-function localSave(thread: Thread, messages: StoredMessage[]) {
-  const index = readIndex().filter((t) => t.id !== thread.id);
-  writeIndex([thread, ...index]);
+function localSave(thread: Thread, messages: StoredMessage[], preserveTitle = true) {
+  if (removalGuard.blocks(thread.id)) return;
+  const current = readIndex();
+  const existing = current.find((item) => item.id === thread.id);
+  const savedThread = preserveTitle ? preserveThreadMetadata(thread, existing) : thread;
+  const index = current.filter((item) => item.id !== thread.id);
+  writeIndex([savedThread, ...index]);
   try {
     localStorage.setItem(threadKey(thread.id), JSON.stringify(messages));
   } catch {
@@ -119,15 +125,27 @@ async function cloudReadMessages(threadId: string): Promise<StoredMessage[]> {
 }
 
 async function cloudSave(userId: string, thread: Thread, messages: StoredMessage[]) {
-  const { error: threadError } = await supabase.from("chat_threads").upsert({
-    id: thread.id,
-    user_id: userId,
-    title: thread.title,
-    created_at: thread.createdAt,
-    updated_at: thread.updatedAt,
-  });
+  if (removalGuard.blocks(thread.id)) return;
+  const { error: threadError } = await supabase.from("chat_threads").upsert(
+    {
+      id: thread.id,
+      user_id: userId,
+      title: thread.title,
+      created_at: thread.createdAt,
+      updated_at: thread.updatedAt,
+    },
+    { onConflict: "id", ignoreDuplicates: true },
+  );
   if (threadError) throw threadError;
 
+  const { error: updateError } = await supabase
+    .from("chat_threads")
+    .update({ updated_at: thread.updatedAt })
+    .eq("id", thread.id)
+    .eq("user_id", userId);
+  if (updateError) throw updateError;
+
+  if (removalGuard.blocks(thread.id)) return;
   if (messages.length === 0) return;
   const { error: messageError } = await supabase.from("chat_messages").upsert(
     messages.map((message) => ({
@@ -144,9 +162,12 @@ async function cloudSave(userId: string, thread: Thread, messages: StoredMessage
 }
 
 async function cloudDelete(id: string) {
-  await supabase.from("chat_messages").delete().eq("thread_id", id);
   const { error } = await supabase.from("chat_threads").delete().eq("id", id);
   if (error) throw error;
+}
+
+async function guardedRemove(id: string, remove: (id: string) => Promise<void> | void) {
+  await removalGuard.remove(id, remove);
 }
 
 /* --------------------------------- adapter -------------------------------- */
@@ -168,9 +189,13 @@ export function createThreadStore(userId: string | null): ThreadStore {
       list: async () => localListThreads(),
       read: async (id) => localReadMessages(id),
       save: async (thread, messages) => localSave(thread, messages),
-      remove: async (id) => localDelete(id),
+      remove: async (id) => guardedRemove(id, localDelete),
       rename: async (thread, title) =>
-        localSave({ ...thread, title, updatedAt: new Date().toISOString() }, localReadMessages(thread.id)),
+        localSave(
+          { ...thread, title, updatedAt: new Date().toISOString() },
+          localReadMessages(thread.id),
+          false,
+        ),
     };
   }
 
@@ -179,7 +204,7 @@ export function createThreadStore(userId: string | null): ThreadStore {
     list: cloudListThreads,
     read: cloudReadMessages,
     save: (thread, messages) => cloudSave(userId, thread, messages),
-    remove: cloudDelete,
+    remove: (id) => guardedRemove(id, cloudDelete),
     rename: async (thread, title) => {
       const { error } = await supabase
         .from("chat_threads")
