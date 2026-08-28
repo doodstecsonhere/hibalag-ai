@@ -87,7 +87,8 @@ const bisaya = {
   "canvas.showAllDays": "Tan-awa ang tanang adlaw",
   "canvas.dayChip": "Ago {day}",
   "canvas.retry": "Sulayi pag-usab",
-  "canvas.empty": "Walay event nga mo-match ani nga filter, bay. Sulayi ug lain nga adlaw o category.",
+  "canvas.empty":
+    "Walay event nga mo-match ani nga filter, bay. Sulayi ug lain nga adlaw o category.",
   "canvas.dateTba": "Wala pa'y petsa",
   "canvas.footer": "Silliman University · Founders Day Celebration",
   "category.Featured": "Featured",
@@ -127,7 +128,8 @@ const bisaya = {
 
   // Install prompt
   "install.title": "I-install ang Hibalag AI",
-  "install.body": "I-add sa imong home screen para paspas ug ma-browse ang schedule bisan walay signal.",
+  "install.body":
+    "I-add sa imong home screen para paspas ug ma-browse ang schedule bisan walay signal.",
   "install.iosBody":
     "Sa Safari, i-tap ang Share icon (↑), unya pilia ang 'Add to Home Screen' para ma-install ang Hibalag AI.",
   "install.action": "Install",
@@ -145,6 +147,14 @@ const bisaya = {
   "offline.noCache":
     "Offline ka karon ug wala pa'y na-save nga schedule ani nga device. Ablihi ang app kausa nga naa'y signal para ma-download ni.",
   "offline.reconnected": "Back online! Live AI reconnected.",
+  "fallback.banner": "Live AI unavailable — cached schedule answers are still available.",
+  "fallback.intro":
+    "Online ka, pero unavailable ang live AI karon. Gipangita nako ang cached schedule ug nakakita ko og {count}:",
+  "fallback.outro": "Tan-awa usab ang Schedule Canvas alang sa kumpletong listahan!",
+  "fallback.noMatch":
+    "Online ka, pero unavailable ang live AI ug walay tugma sa cached schedule. Ablihi ang Schedule Canvas o sulayi pag-usab unya.",
+  "fallback.noCache":
+    "Online ka, pero unavailable ang live AI ug wala pay cached schedule. Ablihi ang Schedule Canvas o sulayi pag-usab unya.",
 } as const;
 
 export type TranslationKey = keyof typeof bisaya;
@@ -244,6 +254,14 @@ const english: Record<TranslationKey, string> = {
   "offline.noCache":
     "You're offline and there's no saved schedule on this device yet. Open the app once with signal so it can download.",
   "offline.reconnected": "Back online! Live AI reconnected.",
+  "fallback.banner": "Live AI unavailable — cached schedule answers are still available.",
+  "fallback.intro":
+    "You're online, but live AI is unavailable right now. I searched the cached schedule and found {count}:",
+  "fallback.outro": "Check the Schedule Canvas too for the complete list!",
+  "fallback.noMatch":
+    "You're online, but live AI is unavailable and I couldn't find a match in the cached schedule. Browse the Schedule Canvas or try again later.",
+  "fallback.noCache":
+    "You're online, but live AI is unavailable and this device has no cached schedule yet. Browse the Schedule Canvas or try again later.",
 };
 
 const tagalog: Record<TranslationKey, string> = {
@@ -342,6 +360,14 @@ const tagalog: Record<TranslationKey, string> = {
   "offline.noCache":
     "Offline ka ngayon at wala pang naka-save na schedule sa device na ito. Buksan ulit ang app kapag may signal para ma-download ito.",
   "offline.reconnected": "Back online! Live AI reconnected.",
+  "fallback.banner": "Hindi available ang live AI — magagamit pa rin ang cached schedule answers.",
+  "fallback.intro":
+    "Online ka, pero hindi available ang live AI ngayon. Hinanap ko sa cached schedule at may {count} akong nakita:",
+  "fallback.outro": "Tingnan din ang Schedule Canvas para sa kumpletong listahan!",
+  "fallback.noMatch":
+    "Online ka, pero hindi available ang live AI at walang tugma sa cached schedule. Tingnan ang Schedule Canvas o subukan ulit mamaya.",
+  "fallback.noCache":
+    "Online ka, pero hindi available ang live AI at wala pang cached schedule sa device. Tingnan ang Schedule Canvas o subukan ulit mamaya.",
 };
 
 export const translations: Record<Language, Record<TranslationKey, string>> = {
