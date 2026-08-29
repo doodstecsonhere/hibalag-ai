@@ -4,7 +4,7 @@ import { AI_QUOTAS } from "./ai-quota-do.ts";
 import { CHAT_LIMITS } from "./chat-request.server.ts";
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "./supabase.ts";
 
-export const CLOUDFLARE_AI_MODEL = "@cf/meta/llama-3.1-8b-instruct-fp8-fast";
+export const CLOUDFLARE_AI_MODEL = "@cf/meta/llama-3.1-8b-instruct-fp8";
 
 type AiRunInput = {
   messages: Array<{ role: "system" | "user" | "assistant"; content: string }>;

@@ -11,6 +11,10 @@ import {
   type CloudflareAiEnv,
 } from "./cloudflare-ai.server.ts";
 
+test("uses the reviewed Workers Free model", () => {
+  assert.equal(CLOUDFLARE_AI_MODEL, "@cf/meta/llama-3.1-8b-instruct-fp8");
+});
+
 const messages = [
   {
     id: "fictional-user-message",

@@ -1,10 +1,13 @@
-import { access, readFile } from "node:fs/promises";
+import { access, readFile, readdir } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const publicDir = resolve(root, ".output/public");
 const wranglerPath = resolve(root, ".output/server/wrangler.json");
+const serverDir = dirname(wranglerPath);
+const reviewedModel = "@cf/meta/llama-3.1-8b-instruct-fp8";
+const unavailableModel = `${reviewedModel}-fast`;
 
 const requiredFiles = [
   "sw.js",
@@ -53,12 +56,29 @@ if (quotaBinding?.class_name !== "HibalagAiQuota") {
 if (wrangler.vars?.AI_ENABLED !== "false") {
   throw new Error("Worker AI must be packaged disabled by default.");
 }
-await access(resolve(dirname(wranglerPath), "hibalag-ai-quota.mjs"));
-const workerEntry = await readFile(resolve(dirname(wranglerPath), "index.mjs"), "utf8");
+const quotaModule = await readFile(resolve(serverDir, "hibalag-ai-quota.mjs"), "utf8");
+if (!/globalDay:\s*20\b/.test(quotaModule)) {
+  throw new Error("Worker package does not contain the conservative global AI quota.");
+}
+const workerEntry = await readFile(resolve(serverDir, "index.mjs"), "utf8");
 if (!workerEntry.includes('export { HibalagAiQuota } from "./hibalag-ai-quota.mjs";')) {
   throw new Error("Worker entry does not export the quota Durable Object.");
 }
 
+async function readJavaScriptTree(directory) {
+  let contents = "";
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    const path = resolve(directory, entry.name);
+    if (entry.isDirectory()) contents += await readJavaScriptTree(path);
+    else if (/\.(?:m?js)$/.test(entry.name)) contents += await readFile(path, "utf8");
+  }
+  return contents;
+}
+const serverJavaScript = await readJavaScriptTree(serverDir);
+if (!serverJavaScript.includes(reviewedModel) || serverJavaScript.includes(unavailableModel)) {
+  throw new Error("Worker package does not contain only the reviewed Workers AI model.");
+}
+
 console.log(
-  `Cloudflare PWA and disabled-AI artifact verified (${requiredFiles.length + 2} required files).`,
+  `Cloudflare PWA and disabled-AI artifact verified (${requiredFiles.length + 2} required files; reviewed model; global quota 20).`,
 );

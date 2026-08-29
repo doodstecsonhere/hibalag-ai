@@ -28,13 +28,13 @@ provider, `google/gemini-3.6-flash` model, system prompt, or secret name.
   stricter guest quota. Raw IDs and addresses are HMAC-pseudonymized before the
   shared SQLite Durable Object sees them.
 - The shared hard limits are 5/minute and 20/day per signed-in user, 3/minute
-  and 10/day per guest IP, and 50/day globally across Pages and Worker.
+  and 10/day per guest IP, and 20/day globally across Pages and Worker.
 - A quota-storage error, missing binding or pepper, exhausted limit, provider
   error, malformed output, or timeout returns an unavailable or quota status
   and the client uses the deterministic schedule fallback. Failed inference
   attempts stay counted and there are no automatic retries or alternate-model
   fallbacks.
-- The model is `@cf/meta/llama-3.1-8b-instruct-fp8-fast`. The existing system
+- The model is `@cf/meta/llama-3.1-8b-instruct-fp8`. The existing system
   prompt and schedule-grounding rules remain unchanged. The retained Lovable
   route continues to use its existing gateway, provider, model, prompt, and
   server-side credential when it is not running in Cloudflare.

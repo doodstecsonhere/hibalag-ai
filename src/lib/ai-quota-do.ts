@@ -1,7 +1,7 @@
 export const AI_QUOTAS = {
   authenticated: { minute: 5, day: 20 },
   guest: { minute: 3, day: 10 },
-  globalDay: 50,
+  globalDay: 20,
 } as const;
 
 type SqlResult<T> = Iterable<T>;
