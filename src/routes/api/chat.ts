@@ -114,6 +114,9 @@ export const Route = createFileRoute("/api/chat")({
           } catch (error) {
             if (error instanceof AiAccessError) {
               const headers = new Headers({ "x-hibalag-ai-status": error.code });
+              if (error.providerCode) {
+                headers.set("x-hibalag-ai-provider-code", error.providerCode);
+              }
               if (error.retryAfterSeconds)
                 headers.set("retry-after", String(error.retryAfterSeconds));
               return new Response(error.message, { status: error.status, headers });

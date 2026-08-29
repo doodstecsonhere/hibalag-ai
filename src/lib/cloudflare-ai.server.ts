@@ -48,6 +48,7 @@ export class AiAccessError extends Error {
     | "quota-exhausted"
     | "provider-unavailable";
   readonly retryAfterSeconds: number | undefined;
+  readonly providerCode: string | undefined;
 
   constructor(
     message: string,
@@ -60,12 +61,43 @@ export class AiAccessError extends Error {
       | "quota-exhausted"
       | "provider-unavailable",
     retryAfterSeconds?: number,
+    providerCode?: string,
   ) {
     super(message);
     this.status = status;
     this.code = code;
     this.retryAfterSeconds = retryAfterSeconds;
+    this.providerCode = providerCode;
   }
+}
+
+const SAFE_CLOUDFLARE_AI_ERROR_CODES = new Set([
+  "3003",
+  "3006",
+  "3007",
+  "3008",
+  "3023",
+  "3036",
+  "3040",
+  "3041",
+  "3042",
+  "5004",
+  "5005",
+  "5007",
+  "5016",
+  "5018",
+  "5019",
+  "5035",
+]);
+
+function safeCloudflareAiErrorCode(error: unknown) {
+  if (!(error instanceof Error)) return undefined;
+  const directCode = "code" in error ? String(error.code) : "";
+  if (SAFE_CLOUDFLARE_AI_ERROR_CODES.has(directCode)) return directCode;
+  const messageCode = error.message.match(
+    /\b(?:3003|3006|3007|3008|3023|3036|3040|3041|3042|5004|5005|5007|5016|5018|5019|5035)\b/,
+  )?.[0];
+  return messageCode && SAFE_CLOUDFLARE_AI_ERROR_CODES.has(messageCode) ? messageCode : undefined;
 }
 
 type AiIdentity = { tier: "authenticated" | "guest"; value: string };
@@ -260,6 +292,12 @@ export async function runCloudflareAi(
     return parseWorkersAiText(output);
   } catch (error) {
     if (error instanceof AiAccessError) throw error;
-    throw new AiAccessError("Live AI is temporarily unavailable", 503, "provider-unavailable");
+    throw new AiAccessError(
+      "Live AI is temporarily unavailable",
+      503,
+      "provider-unavailable",
+      undefined,
+      safeCloudflareAiErrorCode(error),
+    );
   }
 }

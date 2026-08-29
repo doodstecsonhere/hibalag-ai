@@ -211,3 +211,38 @@ test("provider failure, malformed output, and timeout do not retry or fall back"
     assert.equal(calls, 1);
   }
 });
+
+test("provider failures expose only an allowlisted Cloudflare error code", async () => {
+  const providerError = Object.assign(
+    new Error("Cloudflare failed with 5007 and private details"),
+    {
+      code: 5007,
+    },
+  );
+  const env = enabledEnv({
+    AI_QUOTA: quotaNamespace(Response.json({ allowed: true })),
+    AI: {
+      async run() {
+        throw providerError;
+      },
+    },
+  });
+
+  await assert.rejects(
+    runCloudflareAi(
+      new Request("https://example.invalid/api/chat", {
+        headers: { "cf-connecting-ip": "192.0.2.10" },
+      }),
+      "system",
+      messages,
+      env,
+      dependencies(),
+    ),
+    (error: unknown) => {
+      assert.ok(error instanceof AiAccessError);
+      assert.equal(error.providerCode, "5007");
+      assert.doesNotMatch(error.message, /private details/);
+      return true;
+    },
+  );
+});
