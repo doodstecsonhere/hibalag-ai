@@ -36,6 +36,9 @@ for (const icon of manifest.icons ?? []) {
 }
 
 const wrangler = JSON.parse(await readFile(wranglerPath, "utf8"));
+if ("pages_build_output_dir" in wrangler) {
+  throw new Error("Worker Wrangler config must not contain the Pages-only build output field.");
+}
 const assetDirectory = resolve(dirname(wranglerPath), wrangler.assets?.directory ?? "");
 if (assetDirectory !== publicDir) {
   throw new Error(`Wrangler assets resolve to ${assetDirectory}, expected ${publicDir}.`);
