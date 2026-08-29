@@ -4,4 +4,15 @@
   "compatibility_date": "2026-08-26",
   "compatibility_flags": ["nodejs_compat"],
   "send_metrics": false,
+  "ai": { "binding": "AI" },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "AI_QUOTA",
+        "class_name": "HibalagAiQuota",
+        "script_name": "hibalag-ai",
+      },
+    ],
+  },
+  "vars": { "AI_ENABLED": "false" },
 }

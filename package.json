@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
-    "build:independent": "vite build --config vite.independent.config.ts",
+    "build:independent": "vite build --config vite.independent.config.ts && node scripts/package-cloudflare-ai.mjs",
+    "package:cloudflare-ai": "node scripts/package-cloudflare-ai.mjs",
     "package:cloudflare-pages": "node scripts/package-cloudflare-pages.mjs",
     "verify:cloudflare-pwa": "node scripts/verify-cloudflare-pwa.mjs",
     "verify:cloudflare-pages": "node scripts/verify-cloudflare-pages.mjs",
