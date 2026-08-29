@@ -173,12 +173,13 @@ foreign key. Production verification confirmed owner CRUD, application-style
 queries, cross-user and anonymous isolation, cascade behavior, and zero
 remaining ownership conflicts using disposable fictional principals.
 
-## 2026-08-28 readiness recheck
+## 2026-08-29 readiness recheck
 
-The newest encrypted archive and its DPAPI-protected key remain present outside
-OneDrive. Their recorded size and SHA-256 still match; the archive was not
-decrypted and no records were displayed. The preceding archive remains the
-end-to-end isolated-restore evidence.
+The newest encrypted archive, its DPAPI-protected key, and the protected final
+database credential remain present outside OneDrive. Its recorded SHA-256 still
+matches; the archive was not decrypted and no records or protected values were
+displayed. The preceding archive remains the end-to-end isolated-restore
+evidence.
 
 Production records the ownership and hardening migrations as versions
 `20260827041201` and `20260827074437`; the repository retains their reviewed
