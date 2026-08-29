@@ -1,8 +1,9 @@
 # Lovable independence checkpoint
 
 Status: independent Cloudflare production, Supabase recovery, ownership, and
-database hardening are verified. GitHub is authoritative; Lovable is retained
-as a stale historical fallback.
+database hardening are verified. GitHub is authoritative; Lovable remains a
+separately published compatibility deployment and does not control the
+Cloudflare applications.
 
 ## Confirmed
 
@@ -84,8 +85,6 @@ separate approval but no deployment or external-service change.
 
 ## Requires external access or approval
 
-- Applying and verifying an approved RLS/data-integrity migration that prevents
-  a user from attaching their message row to another user's thread.
 - Running the remaining browser-level application Auth journey against a
   non-production environment.
 - Creating or changing any cloud preview, deployment, environment variable,
@@ -115,14 +114,14 @@ Do not provide `LOVABLE_API_KEY` during routine tests. That prevents accidental 
 5. Rotate the database password, retain the final credential only under DPAPI,
    and remove transient credentials. **Complete.**
 6. The local Auth lifecycle, production ownership migration, principal RLS
-   isolation, application-query behavior, and cleanup checks are complete.
-   Apply the reviewed final privileged-function hardening before disconnection.
+   isolation, application-query behavior, cleanup checks, and final
+   privileged-function hardening are complete.
 7. Stop at the final gate. Disconnect Lovable only after the owner gives
    explicit final approval.
 
 ## Final database hardening rollback
 
-The pending hardening migration revokes direct Data API execution of
+The applied hardening migration revokes direct Data API execution of
 `public.rls_auto_enable()` while leaving its PostgreSQL event trigger enabled,
 and creates `public.chat_messages_thread_owner_idx` for the composite foreign
 key. Its structural rollback is:

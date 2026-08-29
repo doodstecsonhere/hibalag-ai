@@ -1,6 +1,6 @@
 # Cloudflare hosting and rollback record
 
-Last verified: 2026-08-28
+Last verified: 2026-08-29
 
 ## Deployment governance
 
@@ -64,5 +64,6 @@ Database rollback is migration-specific and separate from code or deployment rol
 - Production Pages lacks a genuine network-blocked browser run; local hard-offline and Worker production evidence cover the same artifacts.
 - Both URLs share one Cloudflare account and Workers Free quota.
 - Pages uses Direct Upload, so updates require an intentional reviewed Wrangler upload rather than automatic Git deployment.
-- Application metadata and `robots.txt` still name the retained Lovable URL as canonical. Correcting them requires a focused code change and separately approved deployment; they do not redirect users or prevent Pages from operating.
+- Application canonical metadata and `robots.txt` use the Pages origin. OAuth
+  return URLs preserve the initiating Pages, Worker, or Lovable origin.
 - Cloudflare limits and terms can change.
