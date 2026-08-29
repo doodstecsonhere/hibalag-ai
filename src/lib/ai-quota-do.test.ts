@@ -3,6 +3,14 @@ import test from "node:test";
 
 import { AI_QUOTAS, HibalagAiQuota } from "./ai-quota-do.ts";
 
+test("keeps the reviewed per-identity and conservative global limits", () => {
+  assert.deepEqual(AI_QUOTAS, {
+    authenticated: { minute: 5, day: 20 },
+    guest: { minute: 3, day: 10 },
+    globalDay: 20,
+  });
+});
+
 function createState() {
   const counters = new Map<string, { count: number; expires_at: number }>();
   const sql = {
