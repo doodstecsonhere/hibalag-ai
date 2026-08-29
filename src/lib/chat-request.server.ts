@@ -6,6 +6,7 @@ export const CHAT_LIMITS = {
   messageBytes: 8 * 1024,
   scheduleCharacters: 32_000,
   outputTokens: 800,
+  outputCharacters: 8_000,
   timeoutMs: 15_000,
 } as const;
 

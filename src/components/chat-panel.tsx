@@ -10,6 +10,7 @@ import type { Language } from "@/hooks/use-hibalag";
 import { useI18n } from "@/lib/i18n-context";
 import type { TranslationKey } from "@/lib/i18n";
 import { answerOffline, type OfflineFilters } from "@/lib/offline-ai";
+import { supabase } from "@/lib/supabase";
 import { messageSignature, stabilizeMessages, type MessageIdentity } from "@/lib/thread-state";
 import { cn } from "@/lib/utils";
 import {
@@ -65,7 +66,7 @@ export function ChatPanel({
 
   const [offlineMessages, setOfflineMessages] = useState<UIMessage[]>([]);
   const [offlineBusy, setOfflineBusy] = useState(false);
-  const [liveUnavailable, setLiveUnavailable] = useState(false);
+  const [liveFailure, setLiveFailure] = useState<"quota" | "unavailable" | null>(null);
   const lastQueryRef = useRef("");
   const handledErrorRef = useRef<unknown>(null);
   const stableIdsRef = useRef(new Map(initialMessages.map((message) => [message.id, message.id])));
@@ -92,6 +93,24 @@ export function ChatPanel({
     transport: new DefaultChatTransport({
       api: "/api/chat",
       body: { language },
+      fetch: async (input, init) => {
+        const { data } = await supabase.auth.getSession();
+        const headers = new Headers(init?.headers);
+        if (data.session?.access_token) {
+          headers.set("authorization", `Bearer ${data.session.access_token}`);
+        }
+        const response = await fetch(input, { ...init, headers });
+        if (response.ok) {
+          setLiveFailure(null);
+        } else {
+          setLiveFailure(
+            response.headers.get("x-hibalag-ai-status") === "quota-exhausted"
+              ? "quota"
+              : "unavailable",
+          );
+        }
+        return response;
+      },
     }),
   });
 
@@ -183,7 +202,7 @@ export function ChatPanel({
   useEffect(() => {
     if (!error || handledErrorRef.current === error || !lastQueryRef.current) return;
     handledErrorRef.current = error;
-    setLiveUnavailable(true);
+    setLiveFailure((current) => current ?? "unavailable");
     void runOffline(lastQueryRef.current, false, true);
   }, [error, runOffline]);
 
@@ -203,14 +222,20 @@ export function ChatPanel({
 
   return (
     <section className="flex h-full min-h-0 flex-col" aria-label={t("chat.aria")}>
-      {!online || liveUnavailable ? (
+      {!online || liveFailure ? (
         <div
           role="status"
           className="flex items-center gap-2 bg-muted px-4 py-2 text-xs text-muted-foreground"
         >
           <Zap className="size-3.5 shrink-0" aria-hidden />
           <span className="truncate">
-            {t(liveUnavailable && online ? "fallback.banner" : "offline.banner")}
+            {t(
+              liveFailure === "quota" && online
+                ? "fallback.quota"
+                : liveFailure && online
+                  ? "fallback.banner"
+                  : "offline.banner",
+            )}
           </span>
         </div>
       ) : null}

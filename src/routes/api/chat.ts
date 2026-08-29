@@ -1,5 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { convertToModelMessages, streamText } from "ai";
+import {
+  convertToModelMessages,
+  createUIMessageStream,
+  createUIMessageStreamResponse,
+  streamText,
+} from "ai";
 
 import {
   createLovableAiGatewayProvider,
@@ -15,6 +20,7 @@ import {
   readBoundedChatBody,
   type ChatLanguage,
 } from "@/lib/chat-request.server";
+import { AiAccessError, runCloudflareAi } from "@/lib/cloudflare-ai.server";
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/lib/supabase";
 
 let cachedSchedule: { markdown: string; at: number } | null = null;
@@ -51,7 +57,7 @@ function languageRule(language: ChatLanguage) {
   }
 }
 
-function buildSystemPrompt(schedule: string | null, language: ChatLanguage) {
+export function buildSystemPrompt(schedule: string | null, language: ChatLanguage) {
   return `You are "Hibalag AI", the official digital guide for Silliman University's 125th Founders Day and the Hibalag Festival (August 2026) in Dumaguete City, Philippines.
 
 PERSONA
@@ -89,18 +95,42 @@ export const Route = createFileRoute("/api/chat")({
           return new Response("Invalid chat request", { status: 400 });
         }
 
-        const key = process.env.LOVABLE_API_KEY;
-        if (!key) {
-          return new Response("Missing LOVABLE_API_KEY", { status: 500 });
+        const schedule = await getScheduleMarkdown();
+        const system = buildSystemPrompt(schedule, body.language ?? "auto");
+        const cloudflareEnv = globalThis.__env__;
+        if (cloudflareEnv?.ASSETS || cloudflareEnv?.AI || cloudflareEnv?.AI_QUOTA) {
+          try {
+            const text = await runCloudflareAi(request, system, body.messages, cloudflareEnv);
+            const stream = createUIMessageStream({
+              originalMessages: body.messages,
+              execute: ({ writer }) => {
+                const id = crypto.randomUUID();
+                writer.write({ type: "text-start", id });
+                writer.write({ type: "text-delta", id, delta: text });
+                writer.write({ type: "text-end", id });
+              },
+            });
+            return createUIMessageStreamResponse({ stream });
+          } catch (error) {
+            if (error instanceof AiAccessError) {
+              const headers = new Headers({ "x-hibalag-ai-status": error.code });
+              if (error.retryAfterSeconds)
+                headers.set("retry-after", String(error.retryAfterSeconds));
+              return new Response(error.message, { status: error.status, headers });
+            }
+            return new Response("Live AI is temporarily unavailable", { status: 503 });
+          }
         }
 
-        const schedule = await getScheduleMarkdown();
+        const key = process.env.LOVABLE_API_KEY;
+        if (!key) return new Response("Live AI is unavailable", { status: 503 });
+
         const initialRunId = getLovableAiGatewayRunId(request);
         const gateway = createLovableAiGatewayProvider(key, initialRunId);
 
         const result = streamText({
           model: gateway("google/gemini-3.6-flash"),
-          system: buildSystemPrompt(schedule, body.language ?? "auto"),
+          system,
           messages: await convertToModelMessages(body.messages),
           maxOutputTokens: CHAT_LIMITS.outputTokens,
           abortSignal: AbortSignal.timeout(CHAT_LIMITS.timeoutMs),

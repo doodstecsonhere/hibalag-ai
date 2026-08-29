@@ -40,5 +40,22 @@ const assetDirectory = resolve(dirname(wranglerPath), wrangler.assets?.directory
 if (assetDirectory !== publicDir) {
   throw new Error(`Wrangler assets resolve to ${assetDirectory}, expected ${publicDir}.`);
 }
+if (wrangler.ai?.binding !== "AI") throw new Error("Worker AI binding is missing.");
+const quotaBinding = wrangler.durable_objects?.bindings?.find(
+  (binding) => binding.name === "AI_QUOTA",
+);
+if (quotaBinding?.class_name !== "HibalagAiQuota") {
+  throw new Error("Worker quota Durable Object binding is missing.");
+}
+if (wrangler.vars?.AI_ENABLED !== "false") {
+  throw new Error("Worker AI must be packaged disabled by default.");
+}
+await access(resolve(dirname(wranglerPath), "hibalag-ai-quota.mjs"));
+const workerEntry = await readFile(resolve(dirname(wranglerPath), "index.mjs"), "utf8");
+if (!workerEntry.includes('export { HibalagAiQuota } from "./hibalag-ai-quota.mjs";')) {
+  throw new Error("Worker entry does not export the quota Durable Object.");
+}
 
-console.log(`Cloudflare PWA artifact verified (${requiredFiles.length + 1} required files).`);
+console.log(
+  `Cloudflare PWA and disabled-AI artifact verified (${requiredFiles.length + 2} required files).`,
+);

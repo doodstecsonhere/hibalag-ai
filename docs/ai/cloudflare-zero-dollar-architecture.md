@@ -1,8 +1,8 @@
 # Cloudflare zero-dollar live AI architecture
 
-This is an approval-ready design, not deployed configuration. No Cloudflare
-resource, binding, secret, model call, or paid feature is created by this
-document.
+This branch implements and mock-tests the approval-ready design. Its checked-in
+Cloudflare configuration keeps `AI_ENABLED=false`; no Cloudflare resource,
+binding, secret, model call, deployment, or paid feature has been created.
 
 ## Confirmed platform boundaries
 
@@ -30,9 +30,9 @@ document.
    `AI_QUOTA` and always address the single object named `global-ai-quota`.
 3. Bind Workers AI as `AI` on both deployments. Do not enable AI Gateway unified
    billing or prepaid credits.
-4. Use `@cf/meta/llama-3.1-8b-instruct-fp8-fast`, subject to a final read-only
-   availability check immediately before approval. It is not on Cloudflare's
-   current paid-only model list.
+4. Use `@cf/meta/llama-3.1-8b-instruct-fp8-fast`. The 2026-08-29 official
+   pricing catalog still lists it, and it is not on Cloudflare's current
+   paid-only model list.
 5. Preserve the existing Hibalag system prompt. The provider/model change must
    be identified in release notes.
 
@@ -51,6 +51,28 @@ The provider's own 10,000-Neuron free ceiling remains the final hard cost stop.
 The application request ceiling provides headroom but is not presented as an
 exact Neuron calculation because actual inference usage varies.
 
+## Model terms and data handling
+
+- **Built with Llama.** [Meta's Llama 3.1 model card](https://github.com/meta-llama/llama-models/blob/main/models/llama3_1/MODEL_CARD.md)
+  describes commercial and research use as intended uses. Its Community
+  License is royalty-free for the
+  normal use contemplated here, subject to its Acceptable Use Policy and the
+  special license requirement for organizations above 700 million monthly
+  active users. Hibalag must retain this attribution in product or release
+  documentation.
+- Cloudflare receives the bounded system prompt, the user's bounded chat
+  history, and the generated response to perform inference. Hibalag does not
+  send email addresses, Supabase user IDs, IP addresses, database records, or
+  credentials to the model.
+- [Cloudflare says Workers AI Customer Content](https://developers.cloudflare.com/workers-ai/platform/data-usage/)
+  is not shared with other
+  Cloudflare customers and is not used to train models or improve Cloudflare or
+  third-party services without explicit consent. Hibalag does not add R2, KV,
+  Vectorize, AI Gateway logging, or another prompt-storage service.
+- The SQLite Durable Object stores only HMAC-pseudonymized counter keys, counts,
+  and expiry timestamps. It never stores prompts, responses, schedule text,
+  raw user IDs, raw IP addresses, tokens, or secrets.
+
 ## Identity and privacy
 
 - The browser sends its current Supabase bearer token when signed in. The server
@@ -64,6 +86,11 @@ exact Neuron calculation because actual inference usage varies.
 
 Creating the pepper and production bindings requires explicit approval. Values
 must never enter Git, build output, logs, PR text, or documentation.
+
+The reviewed binding names are `AI`, `AI_QUOTA`, `AI_ENABLED`, and the secret
+`AI_RATE_LIMIT_PEPPER`. Worker and Pages packages are generated with
+`AI_ENABLED=false`; Pages references the quota class exported by the
+`hibalag-ai` Worker so both URLs use the single `global-ai-quota` object.
 
 ## Failure behavior
 
