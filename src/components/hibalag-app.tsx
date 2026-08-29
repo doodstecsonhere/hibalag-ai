@@ -1,5 +1,4 @@
 import { useNavigate } from "@tanstack/react-router";
-import type { UIMessage } from "ai";
 import { CalendarRange, Menu } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -10,12 +9,7 @@ import { ChatPanel } from "@/components/chat-panel";
 import { InstallPrompt } from "@/components/install-prompt";
 import { ThreadDrawer } from "@/components/thread-drawer";
 import { Button } from "@/components/ui/button";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerTitle,
-} from "@/components/ui/drawer";
+import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "@/components/ui/drawer";
 const logo = "/apple-touch-icon.png";
 import {
   useInstallPrompt,
@@ -41,15 +35,6 @@ import { cn } from "@/lib/utils";
 
 const LANGUAGE_OPTIONS: Language[] = ["bisaya", "english", "tagalog"];
 
-
-function toUIMessages(stored: StoredMessage[]): UIMessage[] {
-  return stored.map((message) => ({
-    id: message.id,
-    role: message.role,
-    parts: [{ type: "text" as const, text: message.content }],
-  }));
-}
-
 function todayIso() {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
@@ -73,7 +58,7 @@ function HibalagShell({ threadId }: { threadId: string }) {
   const store = useMemo(() => createThreadStore(user?.id ?? null), [user?.id]);
 
   const [threads, setThreads] = useState<Thread[]>([]);
-  const [initialMessages, setInitialMessages] = useState<UIMessage[] | null>(null);
+  const [initialMessages, setInitialMessages] = useState<StoredMessage[] | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [localCount, setLocalCount] = useState(0);
@@ -83,7 +68,11 @@ function HibalagShell({ threadId }: { threadId: string }) {
   const [fromCache, setFromCache] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [canvasOpen, setCanvasOpen] = useState(false);
-  const [filters, setFilters] = useState<CanvasFilters>({ date: todayIso(), categories: [], query: "" });
+  const [filters, setFilters] = useState<CanvasFilters>({
+    date: todayIso(),
+    categories: [],
+    query: "",
+  });
 
   const refreshThreads = useCallback(() => {
     store
@@ -105,7 +94,7 @@ function HibalagShell({ threadId }: { threadId: string }) {
     store
       .read(threadId)
       .then((stored) => {
-        if (!cancelled) setInitialMessages(toUIMessages(stored));
+        if (!cancelled) setInitialMessages(stored);
       })
       .catch(() => {
         if (!cancelled) setInitialMessages([]);
@@ -161,6 +150,7 @@ function HibalagShell({ threadId }: { threadId: string }) {
   const goToThread = useCallback(
     (id: string) => {
       setDrawerOpen(false);
+      setInitialMessages(null);
       void navigate({ to: "/chat/$threadId", params: { threadId: id } });
     },
     [navigate],
@@ -170,10 +160,9 @@ function HibalagShell({ threadId }: { threadId: string }) {
 
   const handleDelete = useCallback(
     (id: string) => {
-      void store.remove(id).finally(() => {
-        refreshThreads();
-        if (id === threadId) handleNew();
-      });
+      setThreads((current) => current.filter((thread) => thread.id !== id));
+      if (id === threadId) handleNew();
+      void store.remove(id).then(refreshThreads).catch(refreshThreads);
     },
     [store, refreshThreads, threadId, handleNew],
   );
@@ -280,7 +269,6 @@ function HibalagShell({ threadId }: { threadId: string }) {
             ) : null}
           </Button>
         </div>
-
       </header>
 
       <main className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">

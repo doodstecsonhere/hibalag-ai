@@ -10,9 +10,12 @@ import type { Language } from "@/hooks/use-hibalag";
 import { useI18n } from "@/lib/i18n-context";
 import type { TranslationKey } from "@/lib/i18n";
 import { answerOffline, type OfflineFilters } from "@/lib/offline-ai";
+import { supabase } from "@/lib/supabase";
+import { messageSignature, stabilizeMessages, type MessageIdentity } from "@/lib/thread-state";
 import { cn } from "@/lib/utils";
 import {
   createThreadStore,
+  newId,
   titleFromMessage,
   type StoredMessage,
   type Thread,
@@ -39,7 +42,7 @@ function textMessage(id: string, role: "user" | "assistant", text: string): UIMe
 
 type ChatPanelProps = {
   threadId: string;
-  initialMessages: UIMessage[];
+  initialMessages: StoredMessage[];
   language: Language;
   online: boolean;
   userId: string | null;
@@ -63,23 +66,56 @@ export function ChatPanel({
 
   const [offlineMessages, setOfflineMessages] = useState<UIMessage[]>([]);
   const [offlineBusy, setOfflineBusy] = useState(false);
+  const [liveFailure, setLiveFailure] = useState<"quota" | "unavailable" | null>(null);
   const lastQueryRef = useRef("");
   const handledErrorRef = useRef<unknown>(null);
+  const stableIdsRef = useRef(new Map(initialMessages.map((message) => [message.id, message.id])));
+  const stableCreatedAtRef = useRef(
+    new Map(initialMessages.map((message) => [message.id, message.createdAt])),
+  );
+  const initialUiMessages = useMemo(
+    () => initialMessages.map((message) => textMessage(message.id, message.role, message.content)),
+    [initialMessages],
+  );
+  const lastSavedSignatureRef = useRef(
+    messageSignature(
+      initialUiMessages.map((message) => ({
+        id: message.id,
+        role: message.role === "assistant" ? "assistant" : "user",
+        content: messageText(message),
+      })),
+    ),
+  );
 
   const { messages, sendMessage, status, error } = useChat({
     id: threadId,
-    messages: initialMessages,
+    messages: initialUiMessages,
     transport: new DefaultChatTransport({
       api: "/api/chat",
       body: { language },
+      fetch: async (input, init) => {
+        const { data } = await supabase.auth.getSession();
+        const headers = new Headers(init?.headers);
+        if (data.session?.access_token) {
+          headers.set("authorization", `Bearer ${data.session.access_token}`);
+        }
+        const response = await fetch(input, { ...init, headers });
+        if (response.ok) {
+          setLiveFailure(null);
+        } else {
+          setLiveFailure(
+            response.headers.get("x-hibalag-ai-status") === "quota-exhausted"
+              ? "quota"
+              : "unavailable",
+          );
+        }
+        return response;
+      },
     }),
   });
 
   const busy = status === "submitted" || status === "streaming" || offlineBusy;
-  const allMessages = useMemo(
-    () => [...messages, ...offlineMessages],
-    [messages, offlineMessages],
-  );
+  const allMessages = useMemo(() => [...messages, ...offlineMessages], [messages, offlineMessages]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -87,12 +123,21 @@ export function ChatPanel({
 
   useEffect(() => {
     if (busy || allMessages.length === 0) return;
-    const stored: StoredMessage[] = allMessages.map((message, index) => ({
-      id: message.id ?? `${threadId}-${index}`,
+    const identities: MessageIdentity[] = allMessages.map((message) => ({
+      id: message.id,
       role: message.role === "assistant" ? "assistant" : "user",
       content: messageText(message),
-      createdAt: new Date(Date.now() + index).toISOString(),
     }));
+    const signature = messageSignature(identities);
+    if (signature === lastSavedSignatureRef.current) return;
+    const baseTime = Date.now();
+    const stored: StoredMessage[] = stabilizeMessages(
+      identities,
+      stableIdsRef.current,
+      stableCreatedAtRef.current,
+      newId,
+      (index) => new Date(baseTime + index).toISOString(),
+    );
     const now = new Date().toISOString();
     const thread: Thread = {
       id: threadId,
@@ -102,13 +147,16 @@ export function ChatPanel({
     };
     void store
       .save(thread, stored)
-      .then(onThreadSaved)
+      .then(() => {
+        lastSavedSignatureRef.current = signature;
+        onThreadSaved();
+      })
       .catch(() => undefined);
   }, [allMessages, busy, store, threadId, onThreadSaved]);
 
   /** Generates and "streams" a grounded reply from the cached schedule, locally. */
   const runOffline = useCallback(
-    async (value: string, includeUser: boolean) => {
+    async (value: string, includeUser: boolean, unavailable = false) => {
       const stamp = Date.now();
       const assistantId = `off-a-${stamp}`;
       setOfflineBusy(true);
@@ -120,9 +168,13 @@ export function ChatPanel({
 
       let result;
       try {
-        result = await answerOffline(value, language);
+        result = await answerOffline(value, language, unavailable ? "unavailable" : "offline");
       } catch {
-        result = { text: t("offline.noCache"), events: [], filters: null };
+        result = {
+          text: t(unavailable ? "fallback.noCache" : "offline.noCache"),
+          events: [],
+          filters: null,
+        };
       }
 
       if (result.filters) onOfflineMatch?.(result.filters);
@@ -150,7 +202,8 @@ export function ChatPanel({
   useEffect(() => {
     if (!error || handledErrorRef.current === error || !lastQueryRef.current) return;
     handledErrorRef.current = error;
-    void runOffline(lastQueryRef.current, false);
+    setLiveFailure((current) => current ?? "unavailable");
+    void runOffline(lastQueryRef.current, false, true);
   }, [error, runOffline]);
 
   const submit = (text: string) => {
@@ -169,13 +222,21 @@ export function ChatPanel({
 
   return (
     <section className="flex h-full min-h-0 flex-col" aria-label={t("chat.aria")}>
-      {!online ? (
+      {!online || liveFailure ? (
         <div
           role="status"
           className="flex items-center gap-2 bg-muted px-4 py-2 text-xs text-muted-foreground"
         >
           <Zap className="size-3.5 shrink-0" aria-hidden />
-          <span className="truncate">{t("offline.banner")}</span>
+          <span className="truncate">
+            {t(
+              liveFailure === "quota" && online
+                ? "fallback.quota"
+                : liveFailure && online
+                  ? "fallback.banner"
+                  : "offline.banner",
+            )}
+          </span>
         </div>
       ) : null}
 
@@ -266,7 +327,12 @@ export function ChatPanel({
             className="max-h-32 min-h-11 flex-1 resize-none rounded-2xl border border-border bg-background px-4 py-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-ring/40 sm:text-sm"
           />
 
-          <Button type="submit" size="icon" className="size-11 rounded-2xl" disabled={busy || !input.trim()}>
+          <Button
+            type="submit"
+            size="icon"
+            className="size-11 rounded-2xl"
+            disabled={busy || !input.trim()}
+          >
             {busy ? <Loader2 className="size-4 animate-spin" /> : <ArrowUp className="size-4" />}
             <span className="sr-only">{t("chat.send")}</span>
           </Button>

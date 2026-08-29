@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { authRedirectUrl } from "@/lib/app-url";
 import { useI18n } from "@/lib/i18n-context";
 import { supabase } from "@/lib/supabase";
 
@@ -27,7 +28,6 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setBusy(true);
@@ -38,7 +38,7 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
         const { error: signUpError } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: window.location.origin },
+          options: { emailRedirectTo: authRedirectUrl(window.location.origin) },
         });
         if (signUpError) throw signUpError;
         setMessage(t("auth.confirm"));
@@ -58,7 +58,7 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
     setError(null);
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin },
+      options: { redirectTo: authRedirectUrl(window.location.origin) },
     });
     if (oauthError) setError(oauthError.message);
   };

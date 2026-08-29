@@ -1,13 +1,16 @@
-const CURRENT_PUBLIC_URL = "https://hibalag-ai.lovable.app";
+const PRIMARY_PUBLIC_URL = "https://hibalag-ai.pages.dev";
 
 /**
- * Set VITE_PUBLIC_APP_URL when an independent public domain is approved.
- * Until then, canonical metadata must continue to point at the live site.
+ * Override this only for an explicitly approved environment-specific canonical URL.
  */
-export const PUBLIC_APP_URL = (import.meta.env.VITE_PUBLIC_APP_URL || CURRENT_PUBLIC_URL).replace(
+export const PUBLIC_APP_URL = (import.meta.env?.VITE_PUBLIC_APP_URL || PRIMARY_PUBLIC_URL).replace(
   /\/$/,
   "",
 );
+
+export function authRedirectUrl(origin: string) {
+  return new URL(origin).origin;
+}
 
 export function appUrl(path = "/") {
   return new URL(path, `${PUBLIC_APP_URL}/`).toString();

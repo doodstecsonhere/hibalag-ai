@@ -34,11 +34,24 @@ if (config.pages_build_output_dir !== "./.output/pages") {
 if (!config.compatibility_flags?.includes("nodejs_compat")) {
   throw new Error("Pages must preserve Nitro's nodejs_compat runtime flag.");
 }
-if (config.vars || config.ai || config.services || config.d1_databases || config.kv_namespaces) {
-  throw new Error("Pages configuration must not add variables, AI, services, or data bindings.");
+if (config.ai?.binding !== "AI") throw new Error("Pages Workers AI binding is missing.");
+if (config.vars?.AI_ENABLED !== "false") {
+  throw new Error("Pages AI must be packaged disabled by default.");
+}
+const quotaBinding = config.durable_objects?.bindings?.find(
+  (binding) => binding.name === "AI_QUOTA",
+);
+if (quotaBinding?.class_name !== "HibalagAiQuota" || quotaBinding?.script_name !== "hibalag-ai") {
+  throw new Error("Pages must bind to the Worker's shared quota Durable Object.");
+}
+if (config.services || config.d1_databases || config.kv_namespaces) {
+  throw new Error("Pages configuration contains an unrelated data or service binding.");
 }
 if (/LOVABLE_API_KEY\s*[:=]\s*["'][^"']+["']/.test(configText)) {
   throw new Error("Pages configuration contains a LOVABLE_API_KEY value.");
+}
+if (/AI_RATE_LIMIT_PEPPER\s*[:=]\s*["'][^"']+["']/.test(configText)) {
+  throw new Error("Pages configuration contains an AI quota secret value.");
 }
 
 const worker = await readFile(workerEntry, "utf8");
@@ -48,6 +61,10 @@ if (!/export\s*\{[^}]*default/s.test(worker)) {
 if (!/env\.ASSETS/.test(worker)) {
   throw new Error("Pages Worker entry does not forward static assets through ASSETS.");
 }
+if (!worker.includes('export { HibalagAiQuota } from "./hibalag-ai-quota.mjs";')) {
+  throw new Error("Pages Worker entry does not retain the quota Durable Object export.");
+}
+await access(resolve(workerDir, "hibalag-ai-quota.mjs"));
 
 const imports = [...worker.matchAll(/(?:from\s*|import\s*\()["'](\.[^"']+)["']/g)].map(
   ([, path]) => path,
@@ -92,5 +109,5 @@ if (fileCount > 20_000)
   throw new Error(`Pages package has ${fileCount} files; Free allows 20,000.`);
 
 console.log(
-  `Cloudflare Pages package verified (${fileCount} files; largest ${Math.ceil(largestFile.size / 1024)} KiB; no runtime bindings or LOVABLE_API_KEY value).`,
+  `Cloudflare Pages package verified (${fileCount} files; largest ${Math.ceil(largestFile.size / 1024)} KiB; AI disabled; no quota secret or LOVABLE_API_KEY value).`,
 );

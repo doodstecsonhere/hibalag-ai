@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://hibalag-ai.lovable.app/sitemap.xml
+Sitemap: https://hibalag-ai.pages.dev/sitemap.xml

@@ -1,5 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { convertToModelMessages, streamText, type UIMessage } from "ai";
+import {
+  convertToModelMessages,
+  createUIMessageStream,
+  createUIMessageStreamResponse,
+  streamText,
+} from "ai";
 
 import {
   createLovableAiGatewayProvider,
@@ -7,15 +12,16 @@ import {
   getLovableAiGatewayRunId,
   withLovableAiGatewayRunIdHeader,
 } from "@/lib/ai-gateway.server";
+import {
+  CHAT_LIMITS,
+  ChatRequestError,
+  boundScheduleContext,
+  parseChatRequest,
+  readBoundedChatBody,
+  type ChatLanguage,
+} from "@/lib/chat-request.server";
+import { AiAccessError, runCloudflareAi } from "@/lib/cloudflare-ai.server";
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/lib/supabase";
-
-type Language = "bisaya" | "tagalog" | "english" | "auto";
-
-type ChatRequestBody = {
-  messages?: unknown;
-  language?: Language;
-  scheduleMarkdown?: string;
-};
 
 let cachedSchedule: { markdown: string; at: number } | null = null;
 
@@ -30,7 +36,7 @@ async function getScheduleMarkdown(): Promise<string | null> {
     );
     if (!response.ok) return cachedSchedule?.markdown ?? null;
     const rows = (await response.json()) as Array<{ markdown_context: string | null }>;
-    const markdown = rows?.[0]?.markdown_context ?? null;
+    const markdown = boundScheduleContext(rows?.[0]?.markdown_context ?? null);
     if (markdown) cachedSchedule = { markdown, at: Date.now() };
     return markdown;
   } catch {
@@ -38,7 +44,7 @@ async function getScheduleMarkdown(): Promise<string | null> {
   }
 }
 
-function languageRule(language: Language) {
+function languageRule(language: ChatLanguage) {
   switch (language) {
     case "bisaya":
       return "The user picked BISAYA. Always answer in contemporary urban Cebuano/Bisaya as spoken in Dumaguete (natural Bisaya-English code-switching), regardless of the language they typed in.";
@@ -51,7 +57,7 @@ function languageRule(language: Language) {
   }
 }
 
-function buildSystemPrompt(schedule: string | null, language: Language) {
+export function buildSystemPrompt(schedule: string | null, language: ChatLanguage) {
   return `You are "Hibalag AI", the official digital guide for Silliman University's 125th Founders Day and the Hibalag Festival (August 2026) in Dumaguete City, Philippines.
 
 PERSONA
@@ -79,28 +85,62 @@ export const Route = createFileRoute("/api/chat")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const body = (await request.json()) as ChatRequestBody;
-        if (!Array.isArray(body.messages)) {
-          return new Response("Messages are required", { status: 400 });
+        let body;
+        try {
+          body = parseChatRequest(await readBoundedChatBody(request));
+        } catch (error) {
+          if (error instanceof ChatRequestError) {
+            return new Response(error.message, { status: error.status });
+          }
+          return new Response("Invalid chat request", { status: 400 });
+        }
+
+        const schedule = await getScheduleMarkdown();
+        const system = buildSystemPrompt(schedule, body.language ?? "auto");
+        const cloudflareEnv = globalThis.__env__;
+        if (cloudflareEnv?.ASSETS || cloudflareEnv?.AI || cloudflareEnv?.AI_QUOTA) {
+          try {
+            const text = await runCloudflareAi(request, system, body.messages, cloudflareEnv);
+            const stream = createUIMessageStream({
+              originalMessages: body.messages,
+              execute: ({ writer }) => {
+                const id = crypto.randomUUID();
+                writer.write({ type: "text-start", id });
+                writer.write({ type: "text-delta", id, delta: text });
+                writer.write({ type: "text-end", id });
+              },
+            });
+            return createUIMessageStreamResponse({ stream });
+          } catch (error) {
+            if (error instanceof AiAccessError) {
+              const headers = new Headers({ "x-hibalag-ai-status": error.code });
+              if (error.providerCode) {
+                headers.set("x-hibalag-ai-provider-code", error.providerCode);
+              }
+              if (error.retryAfterSeconds)
+                headers.set("retry-after", String(error.retryAfterSeconds));
+              return new Response(error.message, { status: error.status, headers });
+            }
+            return new Response("Live AI is temporarily unavailable", { status: 503 });
+          }
         }
 
         const key = process.env.LOVABLE_API_KEY;
-        if (!key) {
-          return new Response("Missing LOVABLE_API_KEY", { status: 500 });
-        }
+        if (!key) return new Response("Live AI is unavailable", { status: 503 });
 
-        const schedule = (await getScheduleMarkdown()) ?? body.scheduleMarkdown ?? null;
         const initialRunId = getLovableAiGatewayRunId(request);
         const gateway = createLovableAiGatewayProvider(key, initialRunId);
 
         const result = streamText({
           model: gateway("google/gemini-3.6-flash"),
-          system: buildSystemPrompt(schedule, body.language ?? "auto"),
-          messages: await convertToModelMessages(body.messages as UIMessage[]),
+          system,
+          messages: await convertToModelMessages(body.messages),
+          maxOutputTokens: CHAT_LIMITS.outputTokens,
+          abortSignal: AbortSignal.timeout(CHAT_LIMITS.timeoutMs),
         });
 
         const response = result.toUIMessageStreamResponse({
-          originalMessages: body.messages as UIMessage[],
+          originalMessages: body.messages,
           headers: getLovableAiGatewayResponseHeaders(undefined, {
             ...(initialRunId ? { "X-Lovable-AIG-Run-ID": initialRunId } : {}),
           }),

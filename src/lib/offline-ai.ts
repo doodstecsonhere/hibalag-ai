@@ -33,27 +33,134 @@ const MAX_RESULTS = 6;
 
 const STOP_WORDS = new Set([
   // english
-  "a","an","the","is","are","was","were","be","of","for","to","in","on","at","and","or","me","my",
-  "you","i","it","what","when","where","who","which","how","about","tell","show","give","please",
-  "there","any","do","does","did","can","will","this","that","with","from","have","has","us","we",
+  "a",
+  "an",
+  "the",
+  "is",
+  "are",
+  "was",
+  "were",
+  "be",
+  "of",
+  "for",
+  "to",
+  "in",
+  "on",
+  "at",
+  "and",
+  "or",
+  "me",
+  "my",
+  "you",
+  "i",
+  "it",
+  "what",
+  "when",
+  "where",
+  "who",
+  "which",
+  "how",
+  "about",
+  "tell",
+  "show",
+  "give",
+  "please",
+  "there",
+  "any",
+  "do",
+  "does",
+  "did",
+  "can",
+  "will",
+  "this",
+  "that",
+  "with",
+  "from",
+  "have",
+  "has",
+  "us",
+  "we",
   // bisaya / tagalog
-  "ang","sa","ug","og","ni","si","nga","unsa","asa","kanus-a","kinsa","naa","wala","ba","ko","ka",
-  "nimo","nako","imong","akong","kini","kana","mga","ay","na","at","kay","po","ako","ikaw","ito",
-  "iyan","kailan","saan","sino","anong","ano","may","meron","tungkol","kabahin","bahin","bay",
-  "kumusta","hello","hi","pwede","puwede","gusto","nako","unsay","unsa'y","naa'y",
+  "ang",
+  "sa",
+  "ug",
+  "og",
+  "ni",
+  "si",
+  "nga",
+  "unsa",
+  "asa",
+  "kanus-a",
+  "kinsa",
+  "naa",
+  "wala",
+  "ba",
+  "ko",
+  "ka",
+  "nimo",
+  "nako",
+  "imong",
+  "akong",
+  "kini",
+  "kana",
+  "mga",
+  "ay",
+  "na",
+  "at",
+  "kay",
+  "po",
+  "ako",
+  "ikaw",
+  "ito",
+  "iyan",
+  "kailan",
+  "saan",
+  "sino",
+  "anong",
+  "ano",
+  "may",
+  "meron",
+  "tungkol",
+  "kabahin",
+  "bahin",
+  "bay",
+  "kumusta",
+  "hello",
+  "hi",
+  "pwede",
+  "puwede",
+  "gusto",
+  "nako",
+  "unsay",
+  "unsa'y",
+  "naa'y",
 ]);
 
 const CATEGORY_HINTS: Record<Category, RegExp> = {
   Featured: /\b(featured|highlight|main|major|dagko|sikat|tampok)\b/i,
-  Religious: /\b(worship|church|religio|relihiyo|prayer|pray|vesper|mass|misa|devotion|chapel|thanksgiving|sunday)\b/i,
+  Religious:
+    /\b(worship|church|religio|relihiyo|prayer|pray|vesper|mass|misa|devotion|chapel|thanksgiving|sunday)\b/i,
   Alumni: /\b(alumni|alumnae|homecoming|reunion|balik|jubilee|batch|class of)\b/i,
-  Cultural: /\b(cultural|kultura|pageant|miss silliman|mr silliman|concert|dance|sayaw|parada|parade|exhibit|choral|band|theater|theatre|film|music|art)\b/i,
+  Cultural:
+    /\b(cultural|kultura|pageant|miss silliman|mr silliman|concert|dance|sayaw|parada|parade|exhibit|choral|band|theater|theatre|film|music|art)\b/i,
   Parties: /\b(party|parties|night|disco|bash|rave|social|jam|booth|inom|sayawan|gimik)\b/i,
 };
 
 const MONTHS: Record<string, number> = {
-  jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7,
-  aug: 8, ago: 8, agosto: 8, sep: 9, oct: 10, nov: 11, dec: 12,
+  jan: 1,
+  feb: 2,
+  mar: 3,
+  apr: 4,
+  may: 5,
+  jun: 6,
+  jul: 7,
+  aug: 8,
+  ago: 8,
+  agosto: 8,
+  sep: 9,
+  oct: 10,
+  nov: 11,
+  dec: 12,
 };
 
 function normalize(value: string) {
@@ -194,7 +301,11 @@ function eventLine(event: ScheduleEvent) {
 }
 
 /** Reads the cached schedule and builds a localized, grounded offline reply. */
-export async function answerOffline(query: string, language: Language): Promise<OfflineAnswer> {
+export async function answerOffline(
+  query: string,
+  language: Language,
+  reason: "offline" | "unavailable" = "offline",
+): Promise<OfflineAnswer> {
   const t = (key: Parameters<typeof translate>[1], vars?: Record<string, string | number>) =>
     translate(language, key, vars);
 
@@ -208,7 +319,7 @@ export async function answerOffline(query: string, language: Language): Promise<
 
   if (events.length === 0) {
     return {
-      text: t("offline.noCache"),
+      text: t(reason === "unavailable" ? "fallback.noCache" : "offline.noCache"),
       events: [],
       filters: { date: null, categories: [], query: "" },
     };
@@ -217,15 +328,19 @@ export async function answerOffline(query: string, language: Language): Promise<
   const { events: matches, filters } = matchEvents(events, query);
 
   if (matches.length === 0) {
-    return { text: t("offline.noMatch"), events: [], filters: { date: null, categories: [], query: "" } };
+    return {
+      text: t(reason === "unavailable" ? "fallback.noMatch" : "offline.noMatch"),
+      events: [],
+      filters: { date: null, categories: [], query: "" },
+    };
   }
 
   const text = [
-    t("offline.intro", { count: matches.length }),
+    t(reason === "unavailable" ? "fallback.intro" : "offline.intro", { count: matches.length }),
     "",
     matches.map(eventLine).join("\n"),
     "",
-    t("offline.outro"),
+    t(reason === "unavailable" ? "fallback.outro" : "offline.outro"),
   ].join("\n");
 
   return { text, events: matches, filters };
