@@ -37,6 +37,7 @@ if (!entry.includes(quotaExport)) entry = `${entry.trimEnd()}\n${quotaExport}\n`
 await writeFile(entryPath, entry, "utf8");
 
 const config = JSON.parse(await readFile(configPath, "utf8"));
+delete config.pages_build_output_dir;
 config.ai = { binding: "AI" };
 config.durable_objects = {
   bindings: [{ name: "AI_QUOTA", class_name: "HibalagAiQuota" }],
