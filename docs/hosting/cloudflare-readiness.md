@@ -1,23 +1,27 @@
 # Cloudflare hosting and rollback record
 
-Last verified: 2026-08-29
+Last verified: 2026-08-31
 
 ## Deployment governance
 
 This designation is documentation only; it does not redirect traffic, change DNS, or alter either deployment.
 
-| Role               | URL                                                                              | Reviewed source                                       | Deployment identity                           |
-| ------------------ | -------------------------------------------------------------------------------- | ----------------------------------------------------- | --------------------------------------------- |
-| Primary            | [hibalag-ai.pages.dev](https://hibalag-ai.pages.dev)                             | `0e273f4186f3530f53fc96cdb84d9538ac72d0a6`            | Pages `e3375360-7bb8-4f4d-85df-2ea288509d31`  |
-| Secondary rollback | [hibalag-ai.doodstecson.workers.dev](https://hibalag-ai.doodstecson.workers.dev) | PR #6 head `6a1b311b0b26a550984124cde5d5a1b465b22fd5` | Worker `643389ce-7798-4332-b5ca-bbe655ccf903` |
+| Role               | URL                                                                              | Reviewed source                            | Deployment identity                                                              |
+| ------------------ | -------------------------------------------------------------------------------- | ------------------------------------------ | -------------------------------------------------------------------------------- |
+| Primary            | [hibalag-ai.pages.dev](https://hibalag-ai.pages.dev)                             | `fe31fe826336f9d5e2bade37cb323a5d08194e45` | Pages `9df6dea7-0dab-43a1-b391-e1dc381dc399`                                     |
+| Secondary rollback | [hibalag-ai.doodstecson.workers.dev](https://hibalag-ai.doodstecson.workers.dev) | `fe31fe826336f9d5e2bade37cb323a5d08194e45` | Worker version `25158ead-cc24-437d-93d7-56baf8b1e741` at 100% production traffic |
 
 GitHub `doodstecsonhere/hibalag-ai` is authoritative. Lovable is retained only as a historical fallback.
 
 ## Verified behavior
 
-Pages passed server rendering, home-page and schedule browsing, deterministic chat fallback, controlled missing-live-AI handling, online cached reload, and PWA asset checks. Its package contains `_worker.js`, imported server modules, the manifest, service worker, Workbox runtime, and static assets without `LOVABLE_API_KEY`, private data, or extra bindings.
+Pages passed server rendering, home-page and schedule browsing, deterministic chat fallback, controlled missing-live-AI handling, online cached reload, and PWA asset checks. Its package contains `_worker.js`, imported server modules, the manifest, service worker, Workbox runtime, and static assets without `LOVABLE_API_KEY` or private data.
 
-The secondary Worker remains on its known-good version. Its home page and PWA assets respond successfully, and its manifest, service worker, and Workbox runtime match Pages.
+Both deployments use the reviewed Cloudflare Workers AI model and one shared
+SQLite Durable Object quota namespace. Each passed exactly one approved
+fictional, schedule-grounded production AI request. The secondary Worker's home
+page and PWA assets respond successfully, and its manifest, service worker, and
+Workbox runtime match Pages.
 
 A genuine network-blocked production Pages test could not be performed without changing system networking or affecting unrelated applications. The identical artifact passed locally while hard offline, and the Worker previously passed production hard-offline verification.
 
@@ -29,7 +33,7 @@ Current Free-plan documentation lists:
 - Pages Functions share the Workers Free allowance.
 - Workers Free: 100,000 requests per day, 10 ms CPU per invocation, 128 MB memory, 50 subrequests per invocation, and 3 MB compressed Worker size.
 
-Both deployments share one Cloudflare account and its Workers Free quota. The Worker protects against a faulty Pages package or release, not an account-wide outage, suspension, or exhausted shared quota. No card, trial, paid feature, overage setting, domain, DNS change, secret, or additional binding was enabled.
+Both deployments share one Cloudflare account and its Workers Free quota. The Worker protects against a faulty Pages package or release, not an account-wide outage, suspension, or exhausted shared quota. Workers AI Free includes 10,000 Neurons per day, and SQLite Durable Objects have separate hard Free-plan limits. No card, trial, paid feature, overage setting, domain, or DNS change was enabled. The AI pepper is stored only as an encrypted platform secret.
 
 Recheck the official [Pages limits](https://developers.cloudflare.com/pages/platform/limits/), [Pages Functions pricing](https://developers.cloudflare.com/pages/functions/pricing/), and [Workers limits](https://developers.cloudflare.com/workers/platform/limits/) before future usage or billing decisions.
 

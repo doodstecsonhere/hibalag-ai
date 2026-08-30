@@ -6,6 +6,8 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const pagesDir = resolve(root, ".output/pages");
 const workerDir = resolve(pagesDir, "_worker.js");
 const workerEntry = resolve(workerDir, "index.js");
+const reviewedModel = "@cf/meta/llama-3.1-8b-instruct-fp8";
+const unavailableModel = `${reviewedModel}-fast`;
 
 const requiredFiles = [
   "_worker.js/index.js",
@@ -64,7 +66,10 @@ if (!/env\.ASSETS/.test(worker)) {
 if (!worker.includes('export { HibalagAiQuota } from "./hibalag-ai-quota.mjs";')) {
   throw new Error("Pages Worker entry does not retain the quota Durable Object export.");
 }
-await access(resolve(workerDir, "hibalag-ai-quota.mjs"));
+const quotaModule = await readFile(resolve(workerDir, "hibalag-ai-quota.mjs"), "utf8");
+if (!/globalDay:\s*20\b/.test(quotaModule)) {
+  throw new Error("Pages package does not contain the conservative global AI quota.");
+}
 
 const imports = [...worker.matchAll(/(?:from\s*|import\s*\()["'](\.[^"']+)["']/g)].map(
   ([, path]) => path,
@@ -88,6 +93,7 @@ for (const icon of manifest.icons ?? []) {
 
 let fileCount = 0;
 let largestFile = { path: "", size: 0 };
+let packagedJavaScript = "";
 async function inspectTree(directory) {
   for (const entry of await readdir(directory, { withFileTypes: true })) {
     const path = resolve(directory, entry.name);
@@ -98,6 +104,7 @@ async function inspectTree(directory) {
     fileCount += 1;
     const { size } = await stat(path);
     if (size > largestFile.size) largestFile = { path, size };
+    if (/\.(?:m?js)$/.test(entry.name)) packagedJavaScript += await readFile(path, "utf8");
     if (size > 25 * 1024 * 1024) throw new Error(`Pages file exceeds 25 MiB: ${path}`);
     if ([".env", ".vars"].includes(extname(path))) {
       throw new Error(`Credential-like file was packaged: ${path}`);
@@ -107,7 +114,10 @@ async function inspectTree(directory) {
 await inspectTree(pagesDir);
 if (fileCount > 20_000)
   throw new Error(`Pages package has ${fileCount} files; Free allows 20,000.`);
+if (!packagedJavaScript.includes(reviewedModel) || packagedJavaScript.includes(unavailableModel)) {
+  throw new Error("Pages package does not contain only the reviewed Workers AI model.");
+}
 
 console.log(
-  `Cloudflare Pages package verified (${fileCount} files; largest ${Math.ceil(largestFile.size / 1024)} KiB; AI disabled; no quota secret or LOVABLE_API_KEY value).`,
+  `Cloudflare Pages package verified (${fileCount} files; largest ${Math.ceil(largestFile.size / 1024)} KiB; reviewed model; global quota 20; AI disabled; no quota secret or LOVABLE_API_KEY value).`,
 );

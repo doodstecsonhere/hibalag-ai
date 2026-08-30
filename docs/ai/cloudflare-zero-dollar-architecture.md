@@ -30,9 +30,9 @@ binding, secret, model call, deployment, or paid feature has been created.
    `AI_QUOTA` and always address the single object named `global-ai-quota`.
 3. Bind Workers AI as `AI` on both deployments. Do not enable AI Gateway unified
    billing or prepaid credits.
-4. Use `@cf/meta/llama-3.1-8b-instruct-fp8-fast`. The 2026-08-29 official
-   pricing catalog still lists it, and it is not on Cloudflare's current
-   paid-only model list.
+4. Use `@cf/meta/llama-3.1-8b-instruct-fp8`. The 2026-08-29 official model and
+   pricing catalogs list it, and it is not on Cloudflare's current paid-only
+   model list.
 5. Preserve the existing Hibalag system prompt. The provider/model change must
    be identified in release notes.
 
@@ -43,13 +43,26 @@ It records only counters and expiry timestamps, never prompts or responses.
 
 - Authenticated identity: 5 requests per minute and 20 per UTC day.
 - Guest/IP identity: 3 requests per minute and 10 per UTC day.
-- Global across Pages and Worker: 50 accepted requests per UTC day.
+- Global across Pages and Worker: 20 accepted requests per UTC day.
 - Existing route limits: 64 KiB body, 24 messages, 8 KiB per message, 32,000
-  schedule characters, 800 output tokens, and 15-second timeout.
+  schedule characters, 800 output tokens, and a 15-second application response
+  timeout.
 
-The provider's own 10,000-Neuron free ceiling remains the final hard cost stop.
-The application request ceiling provides headroom but is not presented as an
-exact Neuron calculation because actual inference usage varies.
+The timeout limits how long Hibalag waits; it does not guarantee cancellation
+of an already accepted inference. Cloudflare's current `env.AI.run()` binding
+does not document an application-controlled cancellation signal. A timed-out
+inference may therefore continue consuming free Neurons. Its quota reservation
+remains counted, and Hibalag does not retry or select another model.
+
+Cloudflare lists 13,778 Neurons per million input tokens and 26,128 Neurons per
+million output tokens for this model. A deliberately conservative bound of the
+full 32,000-token context as input plus the route's full 800-token output is
+about 461.8 Neurons per accepted request, or about 9,236 Neurons for 20
+requests. This leaves roughly 764 Neurons of application-level headroom when
+Hibalag is the only Workers AI consumer in the account. Actual tokenization and
+inference usage vary, and other account-level Workers AI usage consumes the
+same allowance. Cloudflare's own 10,000-Neuron free ceiling remains the final
+fail-closed cost stop.
 
 ## Model terms and data handling
 
@@ -101,7 +114,10 @@ The reviewed binding names are `AI`, `AI_QUOTA`, `AI_ENABLED`, and the secret
 - The client distinguishes quota exhaustion or live-AI unavailability from a
   genuinely offline browser and offers the deterministic cached-schedule answer.
 - The Durable Object updates counters atomically before inference. Failed model
-  calls remain counted, preventing retry abuse.
+  calls and timeouts remain counted, preventing retry abuse. Each accepted
+  request makes at most one inference call.
+- `AI_ENABLED=false` immediately rejects new application requests. It cannot
+  cancel an inference that Cloudflare has already accepted.
 
 ## Deployment sequence after approval
 

@@ -33,6 +33,11 @@ Cloudflare applications.
 - The reviewed message/thread ownership migration is now recorded in Supabase
   migration history and verified in production. Its rollback-only fictional
   verification left no test accounts or rows.
+- The reviewed pre-disconnection hardening migration is recorded in production.
+  Anonymous, authenticated, and service-role execution of
+  `public.rls_auto_enable()` is denied; `postgres` ownership and the enabled
+  event trigger remain intact; the covering ownership index exists; and the
+  related privileged-function advisor warnings were cleared.
 
 ## Unknown
 
@@ -48,20 +53,22 @@ Cloudflare applications.
   hostnames are the public deployment and rollback paths.
 - Whether any external client previously used the removed public MCP endpoints. No application code referenced them.
 
-## 2026-08-28 independent release readiness
+## 2026-08-31 independent release readiness
 
 - Primary: [hibalag-ai.pages.dev](https://hibalag-ai.pages.dev), source
-  `0e273f4186f3530f53fc96cdb84d9538ac72d0a6`, deployment
-  `e3375360-7bb8-4f4d-85df-2ea288509d31`.
+  `fe31fe826336f9d5e2bade37cb323a5d08194e45`, deployment
+  `9df6dea7-0dab-43a1-b391-e1dc381dc399`.
 - Secondary rollback:
   [hibalag-ai.doodstecson.workers.dev](https://hibalag-ai.doodstecson.workers.dev),
-  Worker version `643389ce-7798-4332-b5ca-bbe655ccf903`.
+  Worker version `25158ead-cc24-437d-93d7-56baf8b1e741`.
 - The reviewed ownership and database-hardening migrations are applied.
   External roles cannot execute `public.rls_auto_enable()`; its `postgres`
   ownership and enabled event trigger remain intact, and the covering index
   exists. Supabase advisors no longer report the privileged-function warnings.
-- Both deployments work with live AI disabled and deterministic fallback
-  available. They share one Cloudflare account and Workers Free quota.
+- Both deployments passed exactly one fictional, schedule-grounded live-AI
+  request using the reviewed Cloudflare model. They share one quota namespace,
+  one undisclosed pepper value, one Cloudflare account, and Workers Free quota.
+  Deterministic fallback remains available when AI is unavailable or offline.
 - The owner reports that Lovable GitHub synchronization is no longer active.
   Available Lovable metadata confirms its retained copy is behind GitHub, but
   does not independently expose the integration switch.

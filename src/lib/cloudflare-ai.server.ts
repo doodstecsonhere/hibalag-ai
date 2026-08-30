@@ -4,7 +4,7 @@ import { AI_QUOTAS } from "./ai-quota-do.ts";
 import { CHAT_LIMITS } from "./chat-request.server.ts";
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "./supabase.ts";
 
-export const CLOUDFLARE_AI_MODEL = "@cf/meta/llama-3.1-8b-instruct-fp8-fast";
+export const CLOUDFLARE_AI_MODEL = "@cf/meta/llama-3.1-8b-instruct-fp8";
 
 type AiRunInput = {
   messages: Array<{ role: "system" | "user" | "assistant"; content: string }>;
@@ -277,6 +277,9 @@ export async function runCloudflareAi(
   await enforceQuota(env, identity, dependencies);
 
   try {
+    // Workers AI does not currently expose application-controlled cancellation
+    // for env.AI.run(). This bounds how long Hibalag waits for a response; an
+    // already accepted inference may continue and remains charged to quota.
     const output = await Promise.race([
       env.AI.run(CLOUDFLARE_AI_MODEL, {
         messages: buildWorkersAiMessages(system, messages),
