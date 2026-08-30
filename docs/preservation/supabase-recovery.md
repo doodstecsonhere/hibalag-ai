@@ -173,7 +173,7 @@ foreign key. Production verification confirmed owner CRUD, application-style
 queries, cross-user and anonymous isolation, cascade behavior, and zero
 remaining ownership conflicts using disposable fictional principals.
 
-## 2026-08-29 readiness recheck
+## 2026-08-31 readiness recheck
 
 The newest encrypted archive, its DPAPI-protected key, and the protected final
 database credential remain present outside OneDrive. Its recorded SHA-256 still
