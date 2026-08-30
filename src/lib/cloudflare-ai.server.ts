@@ -277,6 +277,9 @@ export async function runCloudflareAi(
   await enforceQuota(env, identity, dependencies);
 
   try {
+    // Workers AI does not currently expose application-controlled cancellation
+    // for env.AI.run(). This bounds how long Hibalag waits for a response; an
+    // already accepted inference may continue and remains charged to quota.
     const output = await Promise.race([
       env.AI.run(CLOUDFLARE_AI_MODEL, {
         messages: buildWorkersAiMessages(system, messages),

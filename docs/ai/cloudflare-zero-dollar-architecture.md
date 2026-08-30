@@ -45,7 +45,14 @@ It records only counters and expiry timestamps, never prompts or responses.
 - Guest/IP identity: 3 requests per minute and 10 per UTC day.
 - Global across Pages and Worker: 20 accepted requests per UTC day.
 - Existing route limits: 64 KiB body, 24 messages, 8 KiB per message, 32,000
-  schedule characters, 800 output tokens, and 15-second timeout.
+  schedule characters, 800 output tokens, and a 15-second application response
+  timeout.
+
+The timeout limits how long Hibalag waits; it does not guarantee cancellation
+of an already accepted inference. Cloudflare's current `env.AI.run()` binding
+does not document an application-controlled cancellation signal. A timed-out
+inference may therefore continue consuming free Neurons. Its quota reservation
+remains counted, and Hibalag does not retry or select another model.
 
 Cloudflare lists 13,778 Neurons per million input tokens and 26,128 Neurons per
 million output tokens for this model. A deliberately conservative bound of the
@@ -107,7 +114,10 @@ The reviewed binding names are `AI`, `AI_QUOTA`, `AI_ENABLED`, and the secret
 - The client distinguishes quota exhaustion or live-AI unavailability from a
   genuinely offline browser and offers the deterministic cached-schedule answer.
 - The Durable Object updates counters atomically before inference. Failed model
-  calls remain counted, preventing retry abuse.
+  calls and timeouts remain counted, preventing retry abuse. Each accepted
+  request makes at most one inference call.
+- `AI_ENABLED=false` immediately rejects new application requests. It cannot
+  cancel an inference that Cloudflare has already accepted.
 
 ## Deployment sequence after approval
 

@@ -216,6 +216,49 @@ test("provider failure, malformed output, and timeout do not retry or fall back"
   }
 });
 
+test("a timed-out inference remains quota-counted and is not retried", async () => {
+  let quotaCalls = 0;
+  let inferenceCalls = 0;
+  const env = enabledEnv({
+    AI_QUOTA: {
+      idFromName(name) {
+        assert.equal(name, "global-ai-quota");
+        return name;
+      },
+      get() {
+        return {
+          async fetch() {
+            quotaCalls += 1;
+            return Response.json({ allowed: true });
+          },
+        };
+      },
+    },
+    AI: {
+      async run() {
+        inferenceCalls += 1;
+        return new Promise(() => undefined);
+      },
+    },
+  });
+
+  await expectAccessError(
+    runCloudflareAi(
+      new Request("https://example.invalid/api/chat", {
+        headers: { "cf-connecting-ip": "192.0.2.10" },
+      }),
+      "system",
+      messages,
+      env,
+      dependencies(),
+    ),
+    "provider-unavailable",
+  );
+
+  assert.equal(quotaCalls, 1);
+  assert.equal(inferenceCalls, 1);
+});
+
 test("provider failures expose only an allowlisted Cloudflare error code", async () => {
   const providerError = Object.assign(
     new Error("Cloudflare failed with 5007 and private details"),
