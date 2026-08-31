@@ -56,11 +56,11 @@ Cloudflare applications.
 ## 2026-08-31 independent release readiness
 
 - Primary: [hibalag-ai.pages.dev](https://hibalag-ai.pages.dev), source
-  `fe31fe826336f9d5e2bade37cb323a5d08194e45`, deployment
-  `9df6dea7-0dab-43a1-b391-e1dc381dc399`.
+  `89b26d3a5d1b679a83946426fdd3389b59ada4ce`, deployment
+  `6e9a348d-ecd5-479b-ba20-c0aac4ea54aa`.
 - Secondary rollback:
   [hibalag-ai.doodstecson.workers.dev](https://hibalag-ai.doodstecson.workers.dev),
-  Worker version `25158ead-cc24-437d-93d7-56baf8b1e741`.
+  Worker version `67eb6357-d01b-40fd-abed-c39d0ddc908f`.
 - The reviewed ownership and database-hardening migrations are applied.
   External roles cannot execute `public.rls_auto_enable()`; its `postgres`
   ownership and enabled event trigger remain intact, and the covering index
@@ -69,16 +69,17 @@ Cloudflare applications.
   request using the reviewed Cloudflare model. They share one quota namespace,
   one undisclosed pepper value, one Cloudflare account, and Workers Free quota.
   Deterministic fallback remains available when AI is unavailable or offline.
+- The label-only update was deployed without invoking AI. The guest drawer now
+  says `Log in (Beta)` in all three languages and still opens the login dialog.
 - The owner reports that Lovable GitHub synchronization is no longer active.
   Available Lovable metadata confirms its retained copy is behind GitHub, but
   does not independently expose the integration switch.
 
 Residual manual items are production email-based Auth journeys, the accepted
 Supabase leaked-password-protection warning, a genuine network-blocked Pages
-production run, a full managed-platform restore exercise, and updating the
-application canonical metadata that still names Lovable. These are documented
-limitations rather than demonstrated failures. Publishing `v1.0.0` requires a
-separate approval but no deployment or external-service change.
+production run, and a full managed-platform restore exercise. These are
+documented limitations rather than demonstrated failures. Publishing `v1.0.0`
+requires a separate approval but no deployment or external-service change.
 
 ## Intentionally retained Lovable references
 

@@ -8,8 +8,8 @@ This designation is documentation only; it does not redirect traffic, change DNS
 
 | Role               | URL                                                                              | Reviewed source                            | Deployment identity                                                              |
 | ------------------ | -------------------------------------------------------------------------------- | ------------------------------------------ | -------------------------------------------------------------------------------- |
-| Primary            | [hibalag-ai.pages.dev](https://hibalag-ai.pages.dev)                             | `fe31fe826336f9d5e2bade37cb323a5d08194e45` | Pages `9df6dea7-0dab-43a1-b391-e1dc381dc399`                                     |
-| Secondary rollback | [hibalag-ai.doodstecson.workers.dev](https://hibalag-ai.doodstecson.workers.dev) | `fe31fe826336f9d5e2bade37cb323a5d08194e45` | Worker version `25158ead-cc24-437d-93d7-56baf8b1e741` at 100% production traffic |
+| Primary            | [hibalag-ai.pages.dev](https://hibalag-ai.pages.dev)                             | `89b26d3a5d1b679a83946426fdd3389b59ada4ce` | Pages `6e9a348d-ecd5-479b-ba20-c0aac4ea54aa`                                     |
+| Secondary rollback | [hibalag-ai.doodstecson.workers.dev](https://hibalag-ai.doodstecson.workers.dev) | `89b26d3a5d1b679a83946426fdd3389b59ada4ce` | Worker version `67eb6357-d01b-40fd-abed-c39d0ddc908f` at 100% production traffic |
 
 GitHub `doodstecsonhere/hibalag-ai` is authoritative. Lovable is retained only as a historical fallback.
 
@@ -22,6 +22,14 @@ SQLite Durable Object quota namespace. Each passed exactly one approved
 fictional, schedule-grounded production AI request. The secondary Worker's home
 page and PWA assets respond successfully, and its manifest, service worker, and
 Workbox runtime match Pages.
+
+The label-only deployment from `89b26d3a5d1b679a83946426fdd3389b59ada4ce`
+was verified without an AI request. In Bisaya, English, and Tagalog, the guest
+drawer says `Log in (Beta)` and still opens the login dialog. Both home pages,
+schedule interfaces, deterministic fallback code, manifests, service workers,
+and Workbox assets remained healthy. An already-open Pages tab briefly retained
+the previous label until the service-worker-controlled client was reopened; a
+fresh tab loaded the current asset immediately.
 
 A genuine network-blocked production Pages test could not be performed without changing system networking or affecting unrelated applications. The identical artifact passed locally while hard offline, and the Worker previously passed production hard-offline verification.
 
@@ -54,6 +62,10 @@ Deployment rollback or repair:
 3. Run the Pages package verification.
 4. Deploy `.output/pages` through Wrangler's standard bundled Pages path to project `hibalag-ai`, production branch `main`, only after deployment approval.
 5. Verify Pages before restoring its primary designation.
+
+Label-release rollback points: restore Pages deployment
+`9df6dea7-0dab-43a1-b391-e1dc381dc399` or Worker version
+`25158ead-cc24-437d-93d7-56baf8b1e741`, then repeat the health checks above.
 
 Code rollback:
 
