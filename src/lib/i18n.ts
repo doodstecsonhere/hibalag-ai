@@ -108,7 +108,7 @@ const bisaya = {
   "threads.rename": "Usba ang ngalan sa {title}",
   "threads.delete": "Papasa ang {title}",
   "threads.logout": "Log out",
-  "threads.login": "Log in (optional)",
+  "threads.login": "Log in (Beta)",
 
   // Auth dialog
   "auth.signinTitle": "Log in sa Hibalag AI",
@@ -220,7 +220,7 @@ const english: Record<TranslationKey, string> = {
   "threads.rename": "Rename {title}",
   "threads.delete": "Delete {title}",
   "threads.logout": "Log out",
-  "threads.login": "Log in (optional)",
+  "threads.login": "Log in (Beta)",
 
   "auth.signinTitle": "Log in to Hibalag AI",
   "auth.signupTitle": "Create an account",
@@ -326,7 +326,7 @@ const tagalog: Record<TranslationKey, string> = {
   "threads.rename": "Palitan ang pangalan ng {title}",
   "threads.delete": "Burahin ang {title}",
   "threads.logout": "Mag-log out",
-  "threads.login": "Mag-log in (opsyonal)",
+  "threads.login": "Log in (Beta)",
 
   "auth.signinTitle": "Mag-log in sa Hibalag AI",
   "auth.signupTitle": "Gumawa ng account",
