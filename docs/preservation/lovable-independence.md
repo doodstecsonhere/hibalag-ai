@@ -1,7 +1,9 @@
 # Lovable independence checkpoint
 
-Status: independent Cloudflare production and the Supabase ownership migration
-are verified. Lovable and Supabase remain connected pending the final gate.
+Status: independent Cloudflare production, Supabase recovery, ownership, and
+database hardening are verified. GitHub is authoritative; Lovable remains a
+separately published compatibility deployment and does not control the
+Cloudflare applications.
 
 ## Confirmed
 
@@ -47,9 +49,37 @@ are verified. Lovable and Supabase remain connected pending the final gate.
   portable database export is complete, while the isolated verification focused
   on the application-critical `auth`, `public`, and `storage` schemas because a
   plain PostgreSQL image does not contain every Supabase-managed extension.
-- Domain cutover and DNS rollback. The independent Workers deployment does not
-  yet replace any custom production domain.
+- No custom domain or DNS cutover exists. The independent Pages and Worker
+  hostnames are the public deployment and rollback paths.
 - Whether any external client previously used the removed public MCP endpoints. No application code referenced them.
+
+## 2026-08-31 independent release readiness
+
+- Primary: [hibalag-ai.pages.dev](https://hibalag-ai.pages.dev), source
+  `89b26d3a5d1b679a83946426fdd3389b59ada4ce`, deployment
+  `6e9a348d-ecd5-479b-ba20-c0aac4ea54aa`.
+- Secondary rollback:
+  [hibalag-ai.doodstecson.workers.dev](https://hibalag-ai.doodstecson.workers.dev),
+  Worker version `67eb6357-d01b-40fd-abed-c39d0ddc908f`.
+- The reviewed ownership and database-hardening migrations are applied.
+  External roles cannot execute `public.rls_auto_enable()`; its `postgres`
+  ownership and enabled event trigger remain intact, and the covering index
+  exists. Supabase advisors no longer report the privileged-function warnings.
+- Both deployments passed exactly one fictional, schedule-grounded live-AI
+  request using the reviewed Cloudflare model. They share one quota namespace,
+  one undisclosed pepper value, one Cloudflare account, and Workers Free quota.
+  Deterministic fallback remains available when AI is unavailable or offline.
+- The label-only update was deployed without invoking AI. The guest drawer now
+  says `Log in (Beta)` in all three languages and still opens the login dialog.
+- The owner reports that Lovable GitHub synchronization is no longer active.
+  Available Lovable metadata confirms its retained copy is behind GitHub, but
+  does not independently expose the integration switch.
+
+Residual manual items are production email-based Auth journeys, the accepted
+Supabase leaked-password-protection warning, a genuine network-blocked Pages
+production run, and a full managed-platform restore exercise. These are
+documented limitations rather than demonstrated failures. Publishing `v1.0.0`
+requires a separate approval but no deployment or external-service change.
 
 ## Intentionally retained Lovable references
 
