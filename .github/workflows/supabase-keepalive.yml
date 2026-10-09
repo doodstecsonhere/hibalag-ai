@@ -1,0 +1,118 @@
+name: Supabase Keepalive
+
+# Best-effort protection against Supabase Free-plan inactivity auto-pausing.
+# Performs a few lightweight, READ-ONLY queries through the Supabase Data API
+# (PostgREST) so real PostgreSQL activity happens once per day. This reduces
+# the risk of a pause but does NOT guarantee Supabase will never pause.
+#
+# Hibalag AI project ref: zfjehsrnsszxbtqvgbwq
+on:
+  schedule:
+    # 18:15 UTC daily == 02:15 Asia/Manila (Philippine time) the following day.
+    - cron: "15 18 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-keepalive
+  cancel-in-progress: false
+
+jobs:
+  keepalive:
+    name: Read-only database keepalive
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require configuration
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          set -euo pipefail
+          missing=0
+          if [ -z "${SUPABASE_URL:-}" ]; then
+            echo "::error::Required secret SUPABASE_URL is not set (Settings > Secrets and variables > Actions)."
+            missing=1
+          fi
+          if [ -z "${SUPABASE_PUBLISHABLE_KEY:-}" ]; then
+            echo "::error::Required secret SUPABASE_PUBLISHABLE_KEY is not set (Settings > Secrets and variables > Actions)."
+            missing=1
+          fi
+          exit "$missing"
+
+      - name: Run read-only database checks
+        id: checks
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          set -uo pipefail
+
+          project_ref="zfjehsrnsszxbtqvgbwq"
+          base="${SUPABASE_URL%/}/rest/v1"
+          run_utc="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+
+          # label|path  — all GET (read-only). Columns verified against the live API.
+          # A RLS-filtered empty array still returns HTTP 200, which is genuine
+          # PostgreSQL activity; non-200 (auth/permission/missing-table/5xx) is a failure.
+          checks=(
+            "schedule_context|schedule_context?select=id&limit=1"
+            "chat_threads|chat_threads?select=id&limit=1"
+            "chat_messages|chat_messages?select=thread_id&limit=1"
+          )
+
+          success=0
+          failed=0
+          failed_list=""
+          rows=""
+
+          for entry in "${checks[@]}"; do
+            label="${entry%%|*}"
+            path="${entry#*|}"
+
+            # curl --retry only repeats transient failures (timeouts, connection
+            # refused, HTTP 408/429/500/502/503/504). Auth/permission errors
+            # (401/403) are NOT retried. The apikey is sent as a header and never
+            # printed (no -v / --trace), so it does not reach the logs.
+            # On connection failure curl's %{http_code} reports 000; the default
+            # below also covers the case where curl prints nothing at all.
+            status="$(curl -sS -o /dev/null -w '%{http_code}' \
+              --max-time 20 --retry 2 --retry-delay 3 --retry-connrefused \
+              -H "apikey: ${SUPABASE_PUBLISHABLE_KEY}" \
+              -H "Accept: application/json" \
+              "${base}/${path}" 2>/dev/null)"
+            status="${status:-000}"
+
+            if [ "$status" = "200" ]; then
+              success=$((success + 1))
+              rows="${rows}| ${label} | 200 | ok |"$'\n'
+            else
+              failed=$((failed + 1))
+              failed_list="${failed_list}${label} "
+              rows="${rows}| ${label} | ${status} | FAILED |"$'\n'
+            fi
+          done
+
+          {
+            echo "## Supabase Keepalive — \`${project_ref}\`"
+            echo ""
+            echo "- **Run time (UTC):** ${run_utc}"
+            echo "- **Successful database checks:** ${success} / ${#checks[@]}"
+            echo "- **Failed checks:** ${failed}$([ -n "$failed_list" ] && echo " (${failed_list})")"
+            echo ""
+            echo "| Table | HTTP status | Result |"
+            echo "| --- | --- | --- |"
+            printf '%s' "$rows"
+            echo ""
+            echo "> Read-only PostgREST queries. Empty results from RLS-filtered"
+            echo "> tables still confirm genuine database activity. This is"
+            echo "> best-effort protection, not a guarantee against auto-pausing."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$failed" -ne 0 ]; then
+            echo "::error::${failed} database keepalive check(s) failed."
+            exit 1
+          fi
+          echo "All ${success} read-only database checks succeeded."
